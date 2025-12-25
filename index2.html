@@ -71,6 +71,7 @@
     .card .bd{ padding:12px; }
 
     .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+
     input[type="file"]{
       width:100%;
       padding:10px;
@@ -252,6 +253,17 @@
       background: #f6f7fb;
     }
     .progress{ font-size:12px; color: var(--muted); display:flex; align-items:center; gap:8px; }
+
+    .topNav{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:flex-end;
+      margin-top:10px;
+    }
+    a.backLink{
+      text-decoration:none;
+    }
   </style>
 </head>
 
@@ -263,6 +275,13 @@
       <b>Delete</b> removes content and pulls text up. <b>Spacer</b> adds blank vertical space (does NOT delete text) so you can force better page separation.
       Download is only inside Preview.
     </p>
+  </div>
+
+  <!-- NEW: Back to index.html -->
+  <div class="topNav">
+    <a class="backLink" href="index.html">
+      <button type="button">⬅ Back to index.html</button>
+    </a>
   </div>
 </header>
 
