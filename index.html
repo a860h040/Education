@@ -26,10 +26,11 @@
 </head>
 <body>
 <h1>PDF Vault</h1>
-<div class="muted">Front-end: GitHub Pages. Backend: Apps Script (token + auth stored in Google Sheet).</div>
+<div class="muted">Front-end: GitHub Pages. Backend: Apps Script (token + login stored in Google Sheet).</div>
 
 <script>
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzlZnHcT3qG9-vkc75RI_NdHhW92T5pdGIEFMGfhTOzogX97zOykSV9pAageMJ9YusSjA/exec";
+  // ✅ PUT YOUR /exec URL HERE:
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqrmy3Avl9PfGj4Ni3iN2Rqylkr6fI2FajvJax8CytMGpOpv2rBjy_ppWx6Ztx2oE6kA/exec";
 </script>
 
 <div class="card" id="loginCard">
@@ -51,7 +52,7 @@
 
 <div id="app" class="hidden">
   <div class="card">
-    <div class="row" style="justify-content:space-between;align-items:center;">
+    <div class="row" style="justify-contet:space-between;align-items:center;">
       <div>
         <div class="muted">Repository:</div>
         <div class="mono" id="repoLabel">Loading…</div>
@@ -108,10 +109,11 @@
   <div id="status" class="status muted">Ready.</div>
 </div>
 
-<!-- Hidden iframe for POST (login/upload/logout) -->
-<iframe name="apiFrame" id="apiFrame" class="hidden"></iframe>
+<!-- ✅ Off-screen iframe (NOT display:none) -->
+<iframe name="apiFrame" id="apiFrame"
+  style="position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;border:0;"></iframe>
 
-<!-- Hidden form used for POST to Apps Script -->
+<!-- Hidden form used for POST -->
 <form id="apiForm" method="POST" target="apiFrame" class="hidden">
   <input name="action"  id="f_action">
   <input name="session" id="f_session">
@@ -144,9 +146,9 @@
   }
 
   // ---------- JSONP (GET config/list) ----------
-  function jsonp(url, callbackName){
+  function jsonp(url, prefix){
     return new Promise((resolve, reject) => {
-      const cb = callbackName + "_" + Math.random().toString(16).slice(2);
+      const cb = `${prefix}_${Math.random().toString(16).slice(2)}`;
       window[cb] = (data) => {
         delete window[cb];
         script.remove();
@@ -157,7 +159,7 @@
       script.onerror = () => {
         delete window[cb];
         script.remove();
-        reject(new Error("JSONP failed."));
+        reject(new Error("JSONP failed (script error / blocked)."));
       };
       document.body.appendChild(script);
     });
@@ -238,14 +240,18 @@
       $("f_filename").value = fields.filename || "";
       $("f_base64").value = fields.base64 || "";
 
-      const handler = (ev) => {
-        // optionally tighten this by checking ev.origin
-        const msg = ev.data || {};
-        if (!msg || !msg.type) return;
+      const timeout = setTimeout(() => {
         window.removeEventListener("message", handler);
+        reject(new Error("No response from Apps Script (deployment access / iframe blocked)."));
+      }, 12000);
 
-        if (msg.ok) resolve(msg);
-        else reject(new Error(msg.message || "Request failed"));
+      const handler = (ev) => {
+        const msg = ev.data || {};
+        // Only accept the matching action response
+        if (!msg || msg.type !== action) return;
+        clearTimeout(timeout);
+        window.removeEventListener("message", handler);
+        msg.ok ? resolve(msg) : reject(new Error(msg.message || "Request failed"));
       };
 
       window.addEventListener("message", handler);
@@ -311,7 +317,7 @@
 
     try{
       const dataUrl = await fileToDataUrl(file);
-      setStatus("Uploading (token stays in Google Sheet)…");
+      setStatus("Uploading…");
 
       const res = await postForm("upload", {
         session,
@@ -336,14 +342,15 @@
   $("uploadBtn").addEventListener("click", upload);
   $("search").addEventListener("input", () => render(lastFiles));
 
-  // auto-session
+  // Auto session
   if (session) {
     showApp(true);
-    loadConfig().then(() => setStatus("Session found. Ready.")).catch(() => forceLogout());
+    loadConfig()
+      .then(() => setStatus("Session found. Ready."))
+      .catch(() => forceLogout());
   } else {
     showApp(false);
   }
 </script>
 </body>
 </html>
-
