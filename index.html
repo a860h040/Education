@@ -3,433 +3,1057 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PDF Region Cutter</title>
+  <title>PDF Cutter — No Empty Space + Blank Header/Footer + Smart Page Breaks</title>
+
+  <!-- PDF.js (render) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.7.570/pdf.min.js"></script>
+  <!-- jsPDF (export) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.3/jspdf.umd.min.js"></script>
+
   <style>
-    :root { --bg:#0b1220; --panel:#0f1a33; --text:#e9eefc; --muted:#aab6da; --accent:#6ea8ff; --danger:#ff6e6e; }
-    body { margin:0; font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background:var(--bg); color:var(--text); }
-    header { padding:16px 18px; border-bottom:1px solid rgba(255,255,255,.08); display:flex; gap:12px; align-items:center; flex-wrap:wrap;}
-    header h1 { font-size:16px; margin:0; }
-    .panel { background:var(--panel); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:12px; }
-    .layout { display:grid; grid-template-columns: 360px 1fr; gap:12px; padding:0 18px 18px; }
-    @media (max-width: 980px) { .layout { grid-template-columns: 1fr; } }
-    .controls { display:grid; gap:10px; min-width:320px; max-width:520px; }
-    .controls label { font-size:12px; color:var(--muted); }
-    input[type="text"] { width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.22); color:var(--text); }
-    input[type="file"] { color:var(--muted); }
-    button { padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06); color:var(--text); cursor:pointer; }
-    button.primary { background: rgba(110,168,255,.18); border-color: rgba(110,168,255,.35); }
-    button.danger { background: rgba(255,110,110,.14); border-color: rgba(255,110,110,.35); }
-    .small { font-size:12px; color:var(--muted); line-height:1.35; }
-    .metaBar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .pill { font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.10); background:rgba(0,0,0,.18); color:var(--muted); }
-    .viewer { position:relative; overflow:auto; max-height: calc(100vh - 170px); }
-    .canvasWrap { position:relative; display:inline-block; margin:8px; }
-    canvas { display:block; border-radius:10px; }
-    #overlay { position:absolute; left:0; top:0; cursor:crosshair; }
-    .list { display:flex; flex-direction:column; gap:8px; max-height: 320px; overflow:auto; padding-right:4px; }
-    .item { display:flex; justify-content:space-between; gap:10px; align-items:center; border:1px solid rgba(255,255,255,.10); background:rgba(0,0,0,.14); border-radius:10px; padding:8px 10px; }
-    .item strong { font-size:12px; }
-    .item span { font-size:12px; color:var(--muted); }
-    .progress { height:10px; border-radius:999px; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.18); overflow:hidden; }
-    .bar { height:100%; width:0%; background:rgba(110,168,255,.55); transition:width .15s; }
-    .errorBox { margin-top:10px; padding:10px; border-radius:10px; border:1px solid rgba(255,110,110,.35); background:rgba(255,110,110,.10); color:#ffd9d9; display:none; white-space:pre-wrap; }
+    :root{
+      --bg:#0b1020;
+      --text:#e9ecff;
+      --muted:#aeb7e6;
+      --accent:#7aa2ff;
+      --danger:#ff6b6b;
+      --ok:#42d392;
+      --border:rgba(255,255,255,.12);
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 14px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background: radial-gradient(1100px 650px at 20% 0%, #1a2a5a 0%, var(--bg) 45%, #070b16 100%);
+      color: var(--text);
+    }
+    header{
+      padding:18px 18px 10px;
+      display:flex;
+      gap:12px;
+      align-items:flex-end;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      border-bottom:1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0));
+    }
+    header h1{font-size:16px;margin:0;letter-spacing:.2px;}
+    header p{
+      margin:6px 0 0;
+      font-size:12px;
+      color:var(--muted);
+      max-width:980px;
+      line-height:1.35;
+    }
+    .wrap{
+      display:grid;
+      grid-template-columns: 380px 1fr;
+      gap:14px;
+      padding:14px;
+    }
+    @media (max-width: 980px){ .wrap{grid-template-columns:1fr} }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:12px 12px 10px;
+      background: rgba(0,0,0,.12);
+      border-bottom: 1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .card .hd b{font-size:13px;letter-spacing:.2px;}
+    .card .bd{ padding:12px; }
+
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    input[type="file"]{
+      width:100%;
+      padding:10px;
+      border-radius:12px;
+      border:1px dashed rgba(255,255,255,.25);
+      background: rgba(0,0,0,.18);
+      color: var(--text);
+    }
+    button, input[type="range"]{ font: inherit; }
+    button{
+      border:1px solid var(--border);
+      background: rgba(0,0,0,.20);
+      color: var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      transition: transform .04s ease, background .15s ease, border-color .15s ease;
+      user-select:none;
+    }
+    button:hover{ background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.22); }
+    button:active{ transform: translateY(1px); }
+    button.primary{
+      background: linear-gradient(180deg, rgba(122,162,255,.35), rgba(122,162,255,.18));
+      border-color: rgba(122,162,255,.55);
+    }
+    button.danger{
+      background: linear-gradient(180deg, rgba(255,107,107,.32), rgba(255,107,107,.16));
+      border-color: rgba(255,107,107,.55);
+    }
+    button.ok{
+      background: linear-gradient(180deg, rgba(66,211,146,.28), rgba(66,211,146,.14));
+      border-color: rgba(66,211,146,.55);
+    }
+    button[disabled]{ opacity:.45; cursor:not-allowed; transform:none !important; }
+
+    .hint{
+      font-size:12px;
+      color: var(--muted);
+      line-height:1.35;
+      background: rgba(0,0,0,.16);
+      border:1px solid var(--border);
+      border-radius: 12px;
+      padding:10px 10px;
+    }
+    .hint b{color: var(--text)}
+    .small{ font-size:12px; color: var(--muted); }
+    .mono{
+      font-variant-numeric: tabular-nums;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    label.chk{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background: rgba(0,0,0,.14);
+      font-size:12px;
+      color: var(--muted);
+    }
+    label.chk input{ transform: translateY(1px); }
+
+    .kv{
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap:8px 12px;
+      font-size:12px;
+      color: var(--muted);
+      padding-top:10px;
+      border-top: 1px solid var(--border);
+      margin-top:10px;
+    }
+    .kv div:nth-child(2n){
+      color: var(--text);
+      text-align:right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .viewer{ padding:12px; }
+    .toolbar{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:10px;
+    }
+    .toolbar .left, .toolbar .right{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    .toolbar .stat{ font-size:12px; color: var(--muted); }
+
+    .canvasWrap{
+      position:relative;
+      width:100%;
+      overflow:auto;
+      border-radius: var(--radius);
+      border:1px solid var(--border);
+      background: #f3f4f6;
+      box-shadow: none;
+      max-height: calc(100vh - 170px);
+      padding: 10px;
+      scrollbar-gutter: stable both-edges;
+    }
+
+    .stage{
+      position:relative;
+      display:inline-block;
+      transform-origin: top left;
+      box-shadow:none;
+    }
+
+    #pdfCanvas{
+      display:block;
+      border-radius:8px;
+      box-shadow:none !important;
+      background:#ffffff;
+    }
+
+    #overlay{
+      position:absolute;
+      left:0; top:0;
+      pointer-events:auto;
+      border-radius:8px;
+      box-shadow:none !important;
+      background: transparent !important;
+    }
+
+    .list{
+      max-height: 220px;
+      overflow:auto;
+      border:1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(0,0,0,.14);
+    }
+    .listItem{
+      padding:10px 10px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      font-size:12px;
+      color: var(--muted);
+    }
+    .listItem:last-child{border-bottom:none}
   </style>
 </head>
+
 <body>
 <header>
-  <h1>PDF Region Cutter (Select → Remove → Export)</h1>
-  <div class="pill">Draw boxes to remove content</div>
+  <div>
+    <h1>PDF Cutter — no empty space + blank header/footer + smart page breaks</h1>
+    <p>
+      Drag to delete sections. Export fills the removed space. Header/footer content is removed but the
+      header/footer area stays blank on every output page. Smart breaks try to avoid cutting a line in half.
+    </p>
+  </div>
 </header>
 
-<div class="layout">
-  <div class="panel controls">
-    <div>
-      <label>PDF URL (GitHub Pages URL)</label>
-      <input id="pdfUrl" type="text" placeholder="https://YOURNAME.github.io/REPO/your.pdf" />
-      <div class="small">Tip: Best is hosting the PDF on the same GitHub Pages site as this tool.</div>
-    </div>
-
-    <div class="metaBar">
-      <button id="loadUrl" class="primary">Load from URL</button>
-      <span class="small">or</span>
-      <input id="fileInput" type="file" accept="application/pdf" />
-    </div>
-
-    <div class="metaBar">
-      <button id="prev">◀ Prev</button>
-      <button id="next">Next ▶</button>
-      <span class="pill" id="pageInfo">Page: – / –</span>
-    </div>
-
-    <div class="metaBar">
-      <label class="small" style="min-width:120px;">View scale</label>
-      <button id="zoomOut">−</button>
-      <span class="pill" id="zoomLabel">1.35×</span>
-      <button id="zoomIn">+</button>
-    </div>
-
-    <div class="metaBar">
-      <button id="clearPage" class="danger">Clear boxes (this page)</button>
-      <button id="clearAll" class="danger">Clear boxes (all)</button>
-    </div>
-
-    <div>
-      <label>Boxes on this page</label>
-      <div class="list" id="boxList"></div>
-    </div>
-
-    <div>
-      <label>Export</label>
-      <div class="metaBar">
-        <button id="export" class="primary">Export PDF</button>
-        <span class="pill" id="status">Idle</span>
+<div class="wrap">
+  <div class="card">
+    <div class="hd"><b>Controls</b></div>
+    <div class="bd">
+      <div class="row">
+        <input id="file" type="file" accept="application/pdf" />
       </div>
-      <div class="progress"><div class="bar" id="bar"></div></div>
-      <div id="err" class="errorBox"></div>
+
+      <div style="height:10px"></div>
+
+      <div class="row">
+        <button id="modeDraw" class="primary">Mode: Draw cut</button>
+        <button id="modeDelete">Mode: Delete cut</button>
+        <button id="clearPage" class="danger" disabled>Clear page</button>
+        <button id="clearAll" class="danger" disabled>Clear all</button>
+      </div>
+
+      <div style="height:10px"></div>
+
+      <div class="hint">
+        <b>Smart page breaks</b><br/>
+        Export searches for a blank horizontal gap near the bottom and breaks there (so lines aren’t split).
+        If it can’t find a gap, it will still break normally.
+      </div>
+
+      <div style="height:12px"></div>
+
+      <div class="row">
+        <label class="chk">
+          <input id="blankHF" type="checkbox" checked />
+          Keep header + footer BLANK in the exported PDF
+        </label>
+      </div>
+
+      <div class="row" style="align-items:center">
+        <div class="small">Header blank:</div>
+        <input id="headerPct" type="range" min="0" max="25" step="0.5" value="7" />
+        <div id="headerPctLabel" class="mono small">7.0%</div>
+      </div>
+
+      <div class="row" style="align-items:center">
+        <div class="small">Footer blank:</div>
+        <input id="footerPct" type="range" min="0" max="25" step="0.5" value="7" />
+        <div id="footerPctLabel" class="mono small">7.0%</div>
+      </div>
+
+      <div style="height:10px"></div>
+
+      <div class="row">
+        <label class="chk">
+          <input id="smartBreaks" type="checkbox" checked />
+          Smart page breaks (avoid splitting lines)
+        </label>
+      </div>
+
+      <div style="height:10px"></div>
+
+      <div class="row" style="align-items:center">
+        <div class="small">Export quality:</div>
+        <input id="exportScale" type="range" min="1" max="3" step="0.25" value="2" />
+        <div id="exportScaleLabel" class="mono small">2.00×</div>
+      </div>
+
+      <div style="height:12px"></div>
+
+      <div class="row">
+        <button id="download" class="ok" disabled>Download</button>
+      </div>
+
+      <div class="kv">
+        <div>Pages</div><div id="metaPages" class="mono">—</div>
+        <div>Current page</div><div id="metaPage" class="mono">—</div>
+        <div>Cuts on this page</div><div id="metaCuts" class="mono">—</div>
+        <div>Total cuts</div><div id="metaTotal" class="mono">—</div>
+      </div>
+
+      <div style="height:12px"></div>
+
+      <div class="small" style="margin-bottom:8px">Cuts (current page)</div>
+      <div id="cutList" class="list"></div>
     </div>
   </div>
 
-  <div class="panel viewer">
-    <div class="canvasWrap" id="canvasWrap" style="display:none;">
-      <canvas id="pdfCanvas"></canvas>
-      <canvas id="overlay"></canvas>
+  <div class="card">
+    <div class="hd"><b>Viewer</b></div>
+    <div class="viewer">
+      <div class="toolbar">
+        <div class="left">
+          <button id="prev" disabled>◀ Prev</button>
+          <button id="next" disabled>Next ▶</button>
+          <div class="stat" id="pageStat">No PDF loaded</div>
+        </div>
+        <div class="right">
+          <button id="zoomOut" disabled>−</button>
+          <div class="small">Zoom: <span id="zoomLabel" class="mono">100%</span></div>
+          <button id="zoomIn" disabled>+</button>
+
+          <button id="fitWidth" disabled class="primary">Fit Width</button>
+          <button id="fitPage" disabled>Fit Page</button>
+          <button id="actualSize" disabled>100%</button>
+        </div>
+      </div>
+
+      <div class="canvasWrap" id="canvasWrap">
+        <div class="stage" id="stage" style="display:none;">
+          <canvas id="pdfCanvas"></canvas>
+          <canvas id="overlay"></canvas>
+        </div>
+
+        <div id="emptyState" class="hint" style="max-width:720px;">
+          <b>Upload a PDF to start</b><br/>
+          Drag to select a section you want to delete.
+        </div>
+      </div>
     </div>
-    <div class="small" id="hint">Load a PDF to start. Then draw boxes over parts you want removed.</div>
   </div>
 </div>
 
-<!-- ✅ Local libs (you put these in /libs) -->
-<script src="./libs/pdf.min.js"></script>
-<script src="./libs/pdf-lib.min.js"></script>
-
 <script>
-  const errEl = document.getElementById("err");
-  const statusEl = document.getElementById("status");
-  const barEl = document.getElementById("bar");
+(() => {
+  const pdfjsLib = window['pdfjs-dist/build/pdf'];
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.7.570/pdf.worker.min.js';
 
-  function showErr(msg) { errEl.style.display="block"; errEl.textContent = msg; }
-  function clearErr(){ errEl.style.display="none"; errEl.textContent=""; }
-  function setStatus(s){ statusEl.textContent = s; }
-  function setProgress(p){ barEl.style.width = Math.max(0,Math.min(100,p))+"%"; }
+  const { jsPDF } = window.jspdf;
 
-  // ✅ Hard stop if libs didn’t load
-  if (!window.pdfjsLib) showErr("pdfjsLib failed to load. Check that ./libs/pdf.min.js exists in your repo.");
-  if (!window.PDFLib) showErr((errEl.textContent ? errEl.textContent+"\n\n" : "") + "PDFLib failed to load. Check that ./libs/pdf-lib.min.js exists in your repo.");
+  // UI
+  const elFile = document.getElementById('file');
+  const canvasWrap = document.getElementById('canvasWrap');
+  const elStage = document.getElementById('stage');
+  const elEmpty = document.getElementById('emptyState');
 
-  // ✅ Worker from SAME ORIGIN (GitHub Pages)
-  pdfjsLib.GlobalWorkerOptions.workerSrc = "./libs/pdf.worker.min.js";
+  const pdfCanvas = document.getElementById('pdfCanvas');
+  const overlay = document.getElementById('overlay');
+  const ctx = pdfCanvas.getContext('2d');
+  const octx = overlay.getContext('2d');
 
-  const state = {
-    pdfJsDoc: null,
-    pdfBytes: null,
-    pageNum: 1,
-    numPages: 0,
-    scale: 1.35,
-    rectsByPage: {},
-    drawing: false,
-    start: null,
-    tempRect: null,
-    renderToken: 0
-  };
+  const btnPrev = document.getElementById('prev');
+  const btnNext = document.getElementById('next');
+  const btnZoomIn = document.getElementById('zoomIn');
+  const btnZoomOut = document.getElementById('zoomOut');
+  const btnFitWidth = document.getElementById('fitWidth');
+  const btnFitPage  = document.getElementById('fitPage');
+  const btnActualSize = document.getElementById('actualSize');
+  const zoomLabel = document.getElementById('zoomLabel');
+  const pageStat = document.getElementById('pageStat');
 
-  const pdfUrlEl = document.getElementById("pdfUrl");
-  const loadUrlBtn = document.getElementById("loadUrl");
-  const fileInput = document.getElementById("fileInput");
-  const prevBtn = document.getElementById("prev");
-  const nextBtn = document.getElementById("next");
-  const pageInfo = document.getElementById("pageInfo");
-  const zoomOut = document.getElementById("zoomOut");
-  const zoomIn = document.getElementById("zoomIn");
-  const zoomLabel = document.getElementById("zoomLabel");
-  const clearPage = document.getElementById("clearPage");
-  const clearAll = document.getElementById("clearAll");
-  const exportBtn = document.getElementById("export");
-  const boxList = document.getElementById("boxList");
+  const btnModeDraw = document.getElementById('modeDraw');
+  const btnModeDelete = document.getElementById('modeDelete');
+  const btnClearPage = document.getElementById('clearPage');
+  const btnClearAll = document.getElementById('clearAll');
+  const btnDownload = document.getElementById('download');
 
-  const wrap = document.getElementById("canvasWrap");
-  const hint = document.getElementById("hint");
-  const pdfCanvas = document.getElementById("pdfCanvas");
-  const overlay = document.getElementById("overlay");
-  const pdfCtx = pdfCanvas.getContext("2d");
-  const oCtx = overlay.getContext("2d");
+  const exportScale = document.getElementById('exportScale');
+  const exportScaleLabel = document.getElementById('exportScaleLabel');
 
-  const uid = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
-  const clamp01 = (v) => Math.max(0, Math.min(1, v));
+  const blankHF = document.getElementById('blankHF');
+  const headerPct = document.getElementById('headerPct');
+  const footerPct = document.getElementById('footerPct');
+  const headerPctLabel = document.getElementById('headerPctLabel');
+  const footerPctLabel = document.getElementById('footerPctLabel');
+  const smartBreaks = document.getElementById('smartBreaks');
 
-  function ensurePageStore(p) { if (!state.rectsByPage[p]) state.rectsByPage[p] = []; }
+  const metaPages = document.getElementById('metaPages');
+  const metaPage = document.getElementById('metaPage');
+  const metaCuts = document.getElementById('metaCuts');
+  const metaTotal = document.getElementById('metaTotal');
+  const cutList = document.getElementById('cutList');
 
-  function canvasPoint(e) {
+  // State
+  let pdfDoc = null;
+  let pageNum = 1;
+  let zoom = 1.0;
+  let viewMode = 'width';
+
+  // cutsByPage[page] = [{yPct, hPct}]  FULL WIDTH CUTS
+  const cutsByPage = new Map();
+
+  let mode = 'draw';
+  let isDragging = false;
+  let dragStart = null;
+  let liveCut = null;
+
+  function setMode(newMode){
+    mode = newMode;
+    if (mode === 'draw'){
+      btnModeDraw.classList.add('primary');
+      btnModeDelete.classList.remove('primary');
+      overlay.style.cursor = 'ns-resize';
+    } else {
+      btnModeDelete.classList.add('primary');
+      btnModeDraw.classList.remove('primary');
+      overlay.style.cursor = 'pointer';
+    }
+  }
+
+  function pageCuts(p = pageNum){
+    if (!cutsByPage.has(p)) cutsByPage.set(p, []);
+    return cutsByPage.get(p);
+  }
+
+  function totalCuts(){
+    let n = 0;
+    for (const arr of cutsByPage.values()) n += arr.length;
+    return n;
+  }
+
+  function clamp01(v){ return Math.max(0, Math.min(1, v)); }
+
+  function pxCutToPct(cutPx){
+    const h = overlay.height;
+    return { yPct: clamp01(cutPx.y / h), hPct: clamp01(cutPx.h / h) };
+  }
+
+  function pctCutToPx(cutPct, h=overlay.height){
+    return { y: cutPct.yPct * h, h: cutPct.hPct * h };
+  }
+
+  function normalizeCut(a, b){
+    const y1 = Math.min(a.y, b.y);
+    const y2 = Math.max(a.y, b.y);
+    return { y: y1, h: (y2 - y1) };
+  }
+
+  function getMousePos(evt){
     const r = overlay.getBoundingClientRect();
-    const x = (e.clientX - r.left) * (overlay.width / r.width);
-    const y = (e.clientY - r.top) * (overlay.height / r.height);
-    return {x,y};
+    const x = (evt.clientX - r.left) * (overlay.width / r.width);
+    const y = (evt.clientY - r.top) * (overlay.height / r.height);
+    return { x, y };
   }
 
-  function rectToNorm(rectPx) {
-    const W = overlay.width, H = overlay.height;
-    return { id: uid(), xN: clamp01(rectPx.x/W), yN: clamp01(rectPx.y/H), wN: clamp01(rectPx.w/W), hN: clamp01(rectPx.h/H) };
+  function getInnerSize(el){
+    const cs = getComputedStyle(el);
+    const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+    const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+    return { w: el.clientWidth - padX, h: el.clientHeight - padY };
   }
 
-  function normToPx(rN, W, H) { return { x:rN.xN*W, y:rN.yN*H, w:rN.wN*W, h:rN.hN*H }; }
+  function computeZoomFitWidth(baseViewport){
+    const { w: availW } = getInnerSize(canvasWrap);
+    const margin = 0.98;
+    return Math.max(0.2, Math.min(3, (availW / baseViewport.width) * margin));
+  }
 
-  function drawOverlay() {
-    oCtx.clearRect(0,0,overlay.width, overlay.height);
+  function computeZoomFitPage(baseViewport){
+    const { w: availW, h: availH } = getInnerSize(canvasWrap);
+    const margin = 0.98;
+    return Math.max(0.2, Math.min(3, Math.min(availW / baseViewport.width, availH / baseViewport.height) * margin));
+  }
 
-    const rects = state.rectsByPage[state.pageNum] || [];
-    rects.forEach((r) => {
-      const px = normToPx(r, overlay.width, overlay.height);
-      oCtx.save();
-      oCtx.fillStyle="rgba(110,168,255,0.18)";
-      oCtx.strokeStyle="rgba(110,168,255,0.85)";
-      oCtx.lineWidth=2;
-      oCtx.fillRect(px.x,px.y,px.w,px.h);
-      oCtx.strokeRect(px.x,px.y,px.w,px.h);
-      oCtx.restore();
-    });
-
-    if (state.tempRect) {
-      const t = state.tempRect;
-      oCtx.save();
-      oCtx.fillStyle="rgba(255,255,255,0.12)";
-      oCtx.strokeStyle="rgba(255,255,255,0.85)";
-      oCtx.setLineDash([6,4]);
-      oCtx.lineWidth=2;
-      oCtx.fillRect(t.x,t.y,t.w,t.h);
-      oCtx.strokeRect(t.x,t.y,t.w,t.h);
-      oCtx.restore();
+  function mergeRanges(ranges){
+    if (!ranges.length) return [];
+    ranges.sort((a,b)=>a.y1-b.y1);
+    const out = [ { y1: ranges[0].y1, y2: ranges[0].y2 } ];
+    for (let i=1;i<ranges.length;i++){
+      const cur = ranges[i];
+      const last = out[out.length-1];
+      if (cur.y1 <= last.y2) last.y2 = Math.max(last.y2, cur.y2);
+      else out.push({y1:cur.y1, y2:cur.y2});
     }
+    return out;
   }
 
-  function refreshList() {
-    ensurePageStore(state.pageNum);
-    const rects = state.rectsByPage[state.pageNum];
-    boxList.innerHTML = "";
-    if (!rects.length) { boxList.innerHTML = `<div class="small">No boxes yet.</div>`; return; }
-
-    rects.forEach((r, idx) => {
-      const el = document.createElement("div");
-      el.className="item";
-      el.innerHTML = `<div><strong>Box #${idx+1}</strong><br/><span>${(r.wN*100).toFixed(1)}% × ${(r.hN*100).toFixed(1)}%</span></div>
-                      <button class="danger">Delete</button>`;
-      el.querySelector("button").addEventListener("click", () => {
-        state.rectsByPage[state.pageNum] = rects.filter(x => x.id !== r.id);
-        drawOverlay(); refreshList();
-      });
-      boxList.appendChild(el);
-    });
-  }
-
-  function hitTestRect(x,y){
-    const rects = state.rectsByPage[state.pageNum] || [];
-    for (let i=rects.length-1;i>=0;i--){
-      const px = normToPx(rects[i], overlay.width, overlay.height);
-      if (x>=px.x && x<=px.x+px.w && y>=px.y && y<=px.y+px.h) return rects[i];
+  function updateMetaAndList(){
+    if (!pdfDoc){
+      metaPages.textContent = '—';
+      metaPage.textContent = '—';
+      metaCuts.textContent = '—';
+      metaTotal.textContent = '—';
+      cutList.innerHTML = '';
+      return;
     }
-    return null;
-  }
+    metaPages.textContent = String(pdfDoc.numPages);
+    metaPage.textContent = String(pageNum);
+    metaCuts.textContent = String(pageCuts().length);
+    metaTotal.textContent = String(totalCuts());
 
-  async function loadPdfBytes(bytes){
-    clearErr();
-    state.pdfBytes = bytes;
+    btnClearPage.disabled = pageCuts().length === 0;
+    btnClearAll.disabled = totalCuts() === 0;
 
-    const task = pdfjsLib.getDocument({ data: bytes });
-    task.onPassword = (updatePassword) => {
-      const pw = prompt("PDF is password protected. Enter password:");
-      updatePassword(pw || "");
-    };
-
-    setStatus("Loading PDF…");
-    state.pdfJsDoc = await task.promise;
-
-    state.numPages = state.pdfJsDoc.numPages;
-    state.pageNum = 1;
-    state.rectsByPage = {};
-
-    wrap.style.display="inline-block";
-    hint.style.display="none";
-    pageInfo.textContent = `Page: 1 / ${state.numPages}`;
-
-    await renderPage();
-    setStatus("Ready");
-    setProgress(0);
-  }
-
-  async function loadFromUrl(url){
-    clearErr();
-    setStatus("Fetching URL…");
-    const res = await fetch(url, { mode:"cors" });
-    if (!res.ok) throw new Error(`Fetch failed: ${res.status} ${res.statusText}`);
-    const bytes = new Uint8Array(await res.arrayBuffer());
-    await loadPdfBytes(bytes);
-  }
-
-  async function renderPage(){
-    if (!state.pdfJsDoc) return;
-    const token = ++state.renderToken;
-
-    setStatus("Rendering…");
-    const page = await state.pdfJsDoc.getPage(state.pageNum);
-    const viewport = page.getViewport({ scale: state.scale });
-
-    pdfCanvas.width = Math.floor(viewport.width);
-    pdfCanvas.height = Math.floor(viewport.height);
-    overlay.width = pdfCanvas.width;
-    overlay.height = pdfCanvas.height;
-
-    await page.render({ canvasContext: pdfCtx, viewport }).promise;
-    if (token !== state.renderToken) return;
-
-    pageInfo.textContent = `Page: ${state.pageNum} / ${state.numPages}`;
-    zoomLabel.textContent = `${state.scale.toFixed(2)}×`;
-
-    ensurePageStore(state.pageNum);
-    drawOverlay();
-    refreshList();
-    setStatus("Ready");
-  }
-
-  // Drawing
-  overlay.addEventListener("mousedown",(e)=>{
-    if (!state.pdfJsDoc) return;
-    const p = canvasPoint(e);
-
-    const hit = hitTestRect(p.x,p.y);
-    if (hit){
-      state.rectsByPage[state.pageNum] = (state.rectsByPage[state.pageNum]||[]).filter(r=>r.id!==hit.id);
-      drawOverlay(); refreshList();
+    const cuts = pageCuts();
+    if (cuts.length === 0){
+      cutList.innerHTML = `<div class="listItem"><span>No cuts</span><span class="mono">—</span></div>`;
       return;
     }
 
-    state.drawing=true;
-    state.start=p;
-    state.tempRect={ x:p.x, y:p.y, w:0, h:0 };
+    cutList.innerHTML = '';
+    cuts.forEach((c, idx) => {
+      const item = document.createElement('div');
+      item.className = 'listItem';
+
+      const left = document.createElement('span');
+      const pctTop = Math.round(c.yPct * 1000)/10;
+      const pctH = Math.round(c.hPct * 1000)/10;
+      left.textContent = `Cut ${idx + 1} (y:${pctTop}%, h:${pctH}%)`;
+
+      const right = document.createElement('button');
+      right.textContent = 'Remove';
+      right.className = 'danger';
+      right.style.padding = '6px 10px';
+      right.onclick = () => {
+        cuts.splice(idx, 1);
+        drawOverlay();
+      };
+
+      item.appendChild(left);
+      item.appendChild(right);
+      cutList.appendChild(item);
+    });
+  }
+
+  function drawOverlay(){
+    octx.clearRect(0, 0, overlay.width, overlay.height);
+
+    // Draw reserved header/footer area (blue dashed) for preview ONLY
+    if (blankHF.checked){
+      const h = overlay.height;
+      const topH = Math.round((Number(headerPct.value) / 100) * h);
+      const botH = Math.round((Number(footerPct.value) / 100) * h);
+      octx.save();
+      octx.lineWidth = 2;
+      octx.setLineDash([10, 8]);
+      octx.strokeStyle = 'rgba(122,162,255,0.85)';
+      octx.fillStyle = 'rgba(122,162,255,0.10)';
+      if (topH > 0){
+        octx.fillRect(0, 0, overlay.width, topH);
+        octx.strokeRect(0, 0, overlay.width, topH);
+      }
+      if (botH > 0){
+        octx.fillRect(0, h - botH, overlay.width, botH);
+        octx.strokeRect(0, h - botH, overlay.width, botH);
+      }
+      octx.restore();
+    }
+
+    // Draw cuts (red)
+    const cuts = pageCuts();
+    for (let i = 0; i < cuts.length; i++){
+      const px = pctCutToPx(cuts[i]);
+      octx.save();
+      octx.lineWidth = 2;
+      octx.setLineDash([]);
+      octx.strokeStyle = 'rgba(255,107,107,0.95)';
+      octx.fillStyle = 'rgba(255,107,107,0.15)';
+      octx.fillRect(0, px.y, overlay.width, px.h);
+      octx.strokeRect(0, px.y, overlay.width, px.h);
+      octx.restore();
+    }
+
+    // Live cut (blue dashed)
+    if (liveCut){
+      octx.save();
+      octx.lineWidth = 2;
+      octx.setLineDash([8,6]);
+      octx.strokeStyle = 'rgba(122,162,255,0.95)';
+      octx.fillStyle = 'rgba(122,162,255,0.12)';
+      octx.fillRect(0, liveCut.y, overlay.width, liveCut.h);
+      octx.strokeRect(0, liveCut.y, overlay.width, liveCut.h);
+      octx.restore();
+    }
+
+    updateMetaAndList();
+  }
+
+  async function renderPage(){
+    if (!pdfDoc) return;
+
+    const page = await pdfDoc.getPage(pageNum);
+    const base = page.getViewport({ scale: 1 });
+
+    if (viewMode === 'width') zoom = computeZoomFitWidth(base);
+    else if (viewMode === 'page') zoom = computeZoomFitPage(base);
+
+    const dpr = window.devicePixelRatio || 1;
+    const viewport = page.getViewport({ scale: zoom });
+
+    pdfCanvas.width = Math.floor(viewport.width * dpr);
+    pdfCanvas.height = Math.floor(viewport.height * dpr);
+    pdfCanvas.style.width = `${Math.floor(viewport.width)}px`;
+    pdfCanvas.style.height = `${Math.floor(viewport.height)}px`;
+
+    overlay.width = pdfCanvas.width;
+    overlay.height = pdfCanvas.height;
+    overlay.style.width = pdfCanvas.style.width;
+    overlay.style.height = pdfCanvas.style.height;
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, viewport.width, viewport.height);
+    await page.render({ canvasContext: ctx, viewport }).promise;
+
+    elStage.style.display = '';
+    elEmpty.style.display = 'none';
+
+    btnPrev.disabled = pageNum <= 1;
+    btnNext.disabled = pageNum >= pdfDoc.numPages;
+
+    btnZoomIn.disabled = false;
+    btnZoomOut.disabled = false;
+    btnFitWidth.disabled = false;
+    btnFitPage.disabled = false;
+    btnActualSize.disabled = false;
+
+    zoomLabel.textContent = `${Math.round(zoom * 100)}%`;
+    pageStat.textContent = `Page ${pageNum} / ${pdfDoc.numPages}`;
+
     drawOverlay();
-  });
+  }
 
-  overlay.addEventListener("mousemove",(e)=>{
-    if (!state.drawing) return;
-    const p = canvasPoint(e);
-    const x = Math.min(state.start.x, p.x);
-    const y = Math.min(state.start.y, p.y);
-    const w = Math.abs(p.x - state.start.x);
-    const h = Math.abs(p.y - state.start.y);
-    state.tempRect = { x,y,w,h };
-    drawOverlay();
-  });
+  async function loadPdfFromFile(file){
+    const buf = await file.arrayBuffer();
+    pdfDoc = await pdfjsLib.getDocument({ data: buf }).promise;
 
-  window.addEventListener("mouseup",()=>{
-    if (!state.drawing) return;
-    state.drawing=false;
+    pageNum = 1;
+    zoom = 1.0;
+    viewMode = 'width';
+    cutsByPage.clear();
 
-    const t = state.tempRect;
-    state.tempRect=null;
-    drawOverlay();
+    await renderPage();
+  }
 
-    if (!t || t.w<6 || t.h<6) return;
-    ensurePageStore(state.pageNum);
-    state.rectsByPage[state.pageNum].push(rectToNorm(t));
-    drawOverlay(); refreshList();
-  });
+  // Interaction
+  overlay.addEventListener('mousedown', (evt) => {
+    if (!pdfDoc) return;
+    const pos = getMousePos(evt);
 
-  // Controls
-  loadUrlBtn.addEventListener("click", async ()=>{
-    try{
-      const url = pdfUrlEl.value.trim();
-      if (!url) return alert("Paste a PDF URL first.");
-      await loadFromUrl(url);
-    }catch(err){
-      showErr("URL load failed.\n\nIf this is a GitHub raw URL, CORS may block it.\nUse a GitHub Pages URL instead.\n\nError:\n"+err.message);
-      setStatus("Idle");
+    if (mode === 'draw'){
+      isDragging = true;
+      dragStart = pos;
+      liveCut = { y: pos.y, h: 0 };
+      drawOverlay();
+      return;
+    }
+
+    const cuts = pageCuts();
+    for (let i = cuts.length - 1; i >= 0; i--){
+      const px = pctCutToPx(cuts[i]);
+      if (pos.y >= px.y && pos.y <= (px.y + px.h)){
+        cuts.splice(i, 1);
+        drawOverlay();
+        break;
+      }
     }
   });
 
-  fileInput.addEventListener("change", async (e)=>{
-    try{
-      const f = e.target.files?.[0];
-      if (!f) return;
-      const bytes = new Uint8Array(await f.arrayBuffer());
-      await loadPdfBytes(bytes);
-    }catch(err){
-      showErr("File load failed:\n"+err.message);
-      setStatus("Idle");
-    }
+  window.addEventListener('mousemove', (evt) => {
+    if (!pdfDoc) return;
+    if (!isDragging || mode !== 'draw') return;
+    const pos = getMousePos(evt);
+    const cut = normalizeCut({y: dragStart.y}, {y: pos.y});
+    liveCut = { y: cut.y, h: cut.h };
+    drawOverlay();
   });
 
-  prevBtn.addEventListener("click", async ()=>{ if (state.pageNum>1){ state.pageNum--; await renderPage(); } });
-  nextBtn.addEventListener("click", async ()=>{ if (state.pageNum<state.numPages){ state.pageNum++; await renderPage(); } });
-  zoomOut.addEventListener("click", async ()=>{ state.scale=Math.max(0.6,state.scale-0.15); await renderPage(); });
-  zoomIn.addEventListener("click", async ()=>{ state.scale=Math.min(3.0,state.scale+0.15); await renderPage(); });
+  window.addEventListener('mouseup', () => {
+    if (!pdfDoc) return;
+    if (!isDragging || mode !== 'draw') return;
+    isDragging = false;
 
-  clearPage.addEventListener("click", ()=>{ state.rectsByPage[state.pageNum]=[]; drawOverlay(); refreshList(); });
-  clearAll.addEventListener("click", ()=>{ state.rectsByPage={}; ensurePageStore(state.pageNum); drawOverlay(); refreshList(); });
+    const minPx = 10 * (window.devicePixelRatio || 1);
+    if (liveCut && liveCut.h >= minPx){
+      pageCuts().push(pxCutToPct(liveCut));
+    }
+    liveCut = null;
+    dragStart = null;
+    drawOverlay();
+  });
 
-  // Export (flatten to images)
-  exportBtn.addEventListener("click", async ()=>{
-    if (!state.pdfJsDoc || !state.pdfBytes) return alert("Load a PDF first.");
+  // Buttons
+  btnModeDraw.addEventListener('click', () => setMode('draw'));
+  btnModeDelete.addEventListener('click', () => setMode('delete'));
+
+  btnPrev.addEventListener('click', async () => {
+    if (!pdfDoc || pageNum <= 1) return;
+    pageNum--;
+    await renderPage();
+  });
+
+  btnNext.addEventListener('click', async () => {
+    if (!pdfDoc || pageNum >= pdfDoc.numPages) return;
+    pageNum++;
+    await renderPage();
+  });
+
+  btnZoomIn.addEventListener('click', async () => {
+    if (!pdfDoc) return;
+    viewMode = 'manual';
+    zoom = Math.min(3, zoom + 0.15);
+    await renderPage();
+  });
+
+  btnZoomOut.addEventListener('click', async () => {
+    if (!pdfDoc) return;
+    viewMode = 'manual';
+    zoom = Math.max(0.5, zoom - 0.15);
+    await renderPage();
+  });
+
+  btnFitWidth.addEventListener('click', async () => {
+    if (!pdfDoc) return;
+    viewMode = 'width';
+    await renderPage();
+  });
+
+  btnFitPage.addEventListener('click', async () => {
+    if (!pdfDoc) return;
+    viewMode = 'page';
+    await renderPage();
+  });
+
+  btnActualSize.addEventListener('click', async () => {
+    if (!pdfDoc) return;
+    viewMode = 'manual';
+    zoom = 1.0;
+    await renderPage();
+  });
+
+  btnClearPage.addEventListener('click', () => {
+    if (!pdfDoc) return;
+    cutsByPage.set(pageNum, []);
+    drawOverlay();
+  });
+
+  btnClearAll.addEventListener('click', () => {
+    if (!pdfDoc) return;
+    cutsByPage.clear();
+    drawOverlay();
+  });
+
+  exportScale.addEventListener('input', () => {
+    exportScaleLabel.textContent = `${Number(exportScale.value).toFixed(2)}×`;
+  });
+
+  function updateHFLabels(){
+    headerPctLabel.textContent = `${Number(headerPct.value).toFixed(1)}%`;
+    footerPctLabel.textContent = `${Number(footerPct.value).toFixed(1)}%`;
+  }
+  blankHF.addEventListener('change', () => drawOverlay());
+  headerPct.addEventListener('input', () => { updateHFLabels(); drawOverlay(); });
+  footerPct.addEventListener('input', () => { updateHFLabels(); drawOverlay(); });
+
+  window.addEventListener('resize', async () => {
+    if (!pdfDoc) return;
+    if (viewMode === 'width' || viewMode === 'page') await renderPage();
+  });
+
+  // ---- SMART BREAK: find a blank horizontal gap near the bottom to avoid cutting a line ----
+  function findSafeBreakHeight(srcCtx, targetW, startY, maxH){
+    // We want to break near (startY + maxH) but at a blank row.
+    // Scan a window above the boundary for the emptiest rows.
+    const boundaryY = startY + maxH;
+
+    const minKeep = 60;                 // don't make tiny fragments
+    const window = Math.min(160, maxH - 10);
+    if (window < 40 || maxH < minKeep) return maxH;
+
+    const y1 = Math.max(startY + 20, boundaryY - window);
+    const y2 = boundaryY - 10;
+    if (y2 <= y1) return maxH;
+
+    // ignore page margins; scan only text area width
+    const xMargin = Math.floor(targetW * 0.06);
+    const scanW = Math.max(50, targetW - 2 * xMargin);
+    const scanH = y2 - y1;
+
+    // Get image data once for the window
+    const img = srcCtx.getImageData(xMargin, y1, scanW, scanH).data;
+
+    // sample every few pixels for speed
+    const stepX = 4;
+    const samplesPerRow = Math.floor(scanW / stepX);
+
+    // search from bottom upward for a "blank" row
+    // ink = 255 - avgRGB. Smaller ink means whiter.
+    const blankInkThreshold = 10; // tweak: smaller = stricter blank
+    for (let row = scanH - 1; row >= 0; row--){
+      let inkSum = 0;
+      const rowOffset = row * scanW * 4;
+      for (let x = 0; x < scanW; x += stepX){
+        const i = rowOffset + x * 4;
+        const r = img[i], g = img[i+1], b = img[i+2];
+        const lum = (r + g + b) / 3;
+        inkSum += (255 - lum);
+      }
+      const avgInk = inkSum / Math.max(1, samplesPerRow);
+
+      // "blank row" (gap between lines)
+      if (avgInk <= blankInkThreshold){
+        const breakY = y1 + row;       // absolute y to break at
+        const breakH = breakY - startY; // height from startY
+        if (breakH >= minKeep) return breakH;
+      }
+    }
+
+    // if no blank row found, fall back to maxH
+    return maxH;
+  }
+
+  // EXPORT:
+  // - remove selected cuts and fill space
+  // - remove header/footer content, but keep header/footer space blank on every output page
+  // - smart breaks avoid splitting a line across pages (visual line detection)
+  btnDownload.addEventListener('click', async () => {
+    if (!pdfDoc) return;
+
+    btnDownload.disabled = true;
+    btnDownload.textContent = 'Building...';
+
     try{
-      clearErr();
-      setStatus("Exporting…");
-      setProgress(0);
+      const exp = Number(exportScale.value) || 2;
 
-      const { PDFDocument } = PDFLib;
-      const orig = await PDFDocument.load(state.pdfBytes);
-      const out = await PDFDocument.create();
-      const exportScale = 2.0;
+      const firstPage = await pdfDoc.getPage(1);
+      const firstVp = firstPage.getViewport({ scale: exp });
+      const targetW = Math.floor(firstVp.width);
+      const targetH = Math.floor(firstVp.height);
+      const orientation = targetW >= targetH ? 'landscape' : 'portrait';
 
-      for (let i=1;i<=state.numPages;i++){
-        setStatus(`Exporting page ${i}/${state.numPages}…`);
-        setProgress((i-1)/state.numPages*100);
+      const headerPx = (blankHF.checked ? Math.round((Number(headerPct.value)/100) * targetH) : 0);
+      const footerPx = (blankHF.checked ? Math.round((Number(footerPct.value)/100) * targetH) : 0);
 
-        const page = await state.pdfJsDoc.getPage(i);
-        const viewport = page.getViewport({ scale: exportScale });
+      const bodyTop = headerPx;
+      const bodyBottom = targetH - footerPx;
+      const bodyH = Math.max(1, bodyBottom - bodyTop);
 
-        const c = document.createElement("canvas");
-        c.width = Math.floor(viewport.width);
-        c.height = Math.floor(viewport.height);
-        const ctx = c.getContext("2d");
-
-        await page.render({ canvasContext: ctx, viewport }).promise;
-
-        const rects = state.rectsByPage[i] || [];
-        if (rects.length){
-          ctx.save();
-          ctx.fillStyle="white";
-          rects.forEach(r=>{
-            const px = normToPx(r, c.width, c.height);
-            ctx.fillRect(px.x, px.y, px.w, px.h);
-          });
-          ctx.restore();
-        }
-
-        const pngDataUrl = c.toDataURL("image/png");
-        const pngBytes = await fetch(pngDataUrl).then(r=>r.arrayBuffer());
-        const pngImage = await out.embedPng(pngBytes);
-
-        const origPage = orig.getPage(i-1);
-        const { width, height } = origPage.getSize();
-        const outPage = out.addPage([width,height]);
-        outPage.drawImage(pngImage,{ x:0,y:0,width,height });
+      if (bodyH < 120){
+        alert('Header/Footer blank margins are too large. Reduce the % values.');
+        throw new Error('Body too small');
       }
 
-      setStatus("Finalizing…");
-      setProgress(100);
+      const outPdf = new jsPDF({
+        orientation,
+        unit: 'px',
+        format: [targetW, targetH],
+        compress: true
+      });
 
-      const outBytes = await out.save();
-      const blob = new Blob([outBytes], { type:"application/pdf" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "edited_redacted.pdf";
-      a.click();
-      setTimeout(()=>URL.revokeObjectURL(a.href), 1500);
+      const outCan = document.createElement('canvas');
+      outCan.width = targetW;
+      outCan.height = targetH;
+      const outCtx = outCan.getContext('2d');
 
-      setStatus("Done");
-      setTimeout(()=>setProgress(0), 800);
-    }catch(err){
-      showErr("Export failed:\n"+err.message);
-      setStatus("Idle");
-      setProgress(0);
+      function clearOut(){
+        outCtx.fillStyle = '#ffffff';
+        outCtx.fillRect(0, 0, targetW, targetH);
+        // header/footer remain blank because we never draw into them
+      }
+
+      let outBodyY = 0;   // cursor inside BODY area only (0..bodyH)
+      let wroteAnyPage = false;
+
+      function flushOutPage(){
+        const imgData = outCan.toDataURL('image/jpeg', 0.95);
+        if (!wroteAnyPage){
+          outPdf.addImage(imgData, 'JPEG', 0, 0, targetW, targetH, undefined, 'FAST');
+          wroteAnyPage = true;
+        } else {
+          outPdf.addPage([targetW, targetH], orientation);
+          outPdf.addImage(imgData, 'JPEG', 0, 0, targetW, targetH, undefined, 'FAST');
+        }
+        clearOut();
+        outBodyY = 0;
+      }
+
+      clearOut();
+
+      function drawToBody(srcCanvas, srcY, takeH){
+        outCtx.drawImage(
+          srcCanvas,
+          0, srcY, targetW, takeH,
+          0, bodyTop + outBodyY, targetW, takeH
+        );
+      }
+
+      for (let p = 1; p <= pdfDoc.numPages; p++){
+        const page = await pdfDoc.getPage(p);
+        const vp = page.getViewport({ scale: exp });
+
+        // render source page
+        const srcCan = document.createElement('canvas');
+        srcCan.width = Math.floor(vp.width);
+        srcCan.height = Math.floor(vp.height);
+        const srcCtx = srcCan.getContext('2d');
+
+        srcCtx.fillStyle = '#ffffff';
+        srcCtx.fillRect(0,0,srcCan.width,srcCan.height);
+        await page.render({ canvasContext: srcCtx, viewport: vp }).promise;
+
+        // normalize to targetW/targetH (important)
+        let src = srcCan;
+        if (srcCan.width !== targetW || srcCan.height !== targetH){
+          const scaled = document.createElement('canvas');
+          scaled.width = targetW;
+          scaled.height = targetH;
+          const sctx = scaled.getContext('2d');
+          sctx.fillStyle = '#ffffff';
+          sctx.fillRect(0,0,targetW,targetH);
+          sctx.drawImage(srcCan, 0,0, srcCan.width,srcCan.height, 0,0, targetW,targetH);
+          src = scaled;
+        }
+        const normCtx = src.getContext('2d');
+
+        // Removal ranges: header/footer CONTENT + user cuts
+        const ranges = [];
+        if (blankHF.checked){
+          if (headerPx > 0) ranges.push({ y1: 0, y2: headerPx });
+          if (footerPx > 0) ranges.push({ y1: targetH - footerPx, y2: targetH });
+        }
+        const userCuts = (cutsByPage.get(p) || []);
+        for (const c of userCuts){
+          const y1 = Math.max(0, Math.floor(c.yPct * targetH));
+          const y2 = Math.min(targetH, Math.ceil((c.yPct + c.hPct) * targetH));
+          if (y2 > y1) ranges.push({ y1, y2 });
+        }
+
+        const merged = mergeRanges(ranges);
+
+        // kept segments
+        const kept = [];
+        let cursor = 0;
+        for (const r of merged){
+          if (r.y1 > cursor) kept.push({ y1: cursor, y2: r.y1 });
+          cursor = Math.max(cursor, r.y2);
+        }
+        if (cursor < targetH) kept.push({ y1: cursor, y2: targetH });
+
+        // pour kept segments into output body (smart breaks)
+        for (const seg of kept){
+          let segY = seg.y1;
+          let segRemaining = seg.y2 - seg.y1;
+
+          while (segRemaining > 0){
+            const bodySpace = bodyH - outBodyY;
+
+            // If it fits, draw and continue
+            if (segRemaining <= bodySpace){
+              drawToBody(src, segY, segRemaining);
+              outBodyY += segRemaining;
+              segY += segRemaining;
+              segRemaining = 0;
+
+              if (outBodyY >= bodyH) flushOutPage();
+              continue;
+            }
+
+            // It won't fit: choose break height
+            let take = bodySpace;
+
+            if (smartBreaks.checked && bodySpace >= 140){
+              // find a safer break a little above the bottom of the bodySpace
+              const safe = findSafeBreakHeight(normCtx, targetW, segY, bodySpace);
+              if (safe >= 60 && safe <= bodySpace) take = safe;
+            }
+
+            // draw up to take, then flush page
+            drawToBody(src, segY, take);
+            outBodyY += take;
+            segY += take;
+            segRemaining -= take;
+
+            if (outBodyY >= bodyH) flushOutPage();
+            // If we used a smaller "take", we still flush because we hit bottom
+            // (outBodyY should be == bodyH in most cases)
+            if (outBodyY > 0 && outBodyY < bodyH && segRemaining > 0){
+              // This can happen if bodySpace was small; force flush to continue cleanly
+              flushOutPage();
+            }
+          }
+        }
+      }
+
+      // flush last page if anything was drawn into body
+      if (outBodyY > 0) flushOutPage();
+
+      outPdf.save('edited_smart_breaks_blank_header_footer.pdf');
+    } catch (err){
+      console.error(err);
+      if (!String(err).includes('Body too small')){
+        alert('Export failed. Try lower export quality or a smaller PDF.');
+      }
+    } finally {
+      btnDownload.disabled = false;
+      btnDownload.textContent = 'Download';
     }
   });
+
+  // File input
+  elFile.addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf'){
+      alert('Please upload a PDF file.');
+      return;
+    }
+
+    setMode('draw');
+    btnDownload.disabled = true;
+
+    try{
+      await loadPdfFromFile(file);
+
+      btnPrev.disabled = false;
+      btnNext.disabled = false;
+      btnClearPage.disabled = false;
+      btnClearAll.disabled = false;
+      btnDownload.disabled = false;
+
+      metaPages.textContent = String(pdfDoc.numPages);
+      pageStat.textContent = `Page ${pageNum} / ${pdfDoc.numPages}`;
+      updateMetaAndList();
+    } catch (err){
+      console.error(err);
+      alert('Could not load PDF. Make sure it is a valid PDF file.');
+    }
+  });
+
+  // Init
+  setMode('draw');
+  exportScaleLabel.textContent = `${Number(exportScale.value).toFixed(2)}×`;
+  updateHFLabels();
+  cutList.innerHTML = `<div class="listItem"><span>No PDF loaded</span><span class="mono">—</span></div>`;
+})();
 </script>
 </body>
 </html>
