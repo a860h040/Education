@@ -20,8 +20,12 @@
       --cardBg: rgba(255,255,255,.92);
       --cardBorder: rgba(17,24,39,.10);
 
-      /* ✅ will be set by JS dynamically */
+      /* dynamic */
       --topbarH: 92px;
+
+      /* mobile layout vars */
+      --mobilePanelPad: 12px;
+      --mobilePanelGap: 10px;
     }
     *{box-sizing:border-box}
     body{
@@ -82,6 +86,7 @@
       gap:8px;
       line-height:1;
       white-space:nowrap;
+      touch-action: manipulation;
     }
     .btn:hover{transform: translateY(-1px);background: var(--btnHover);border-color: rgba(17,24,39,.22)}
     .btn:active{transform: translateY(0px) scale(.99)}
@@ -92,7 +97,7 @@
       opacity:.9;
     }
 
-    /* ✅ side panel now sits BELOW real topbar height (no overlap) */
+    /* Desktop side panel (right) */
     .sidePanel{
       position:fixed;
       right:14px;
@@ -124,23 +129,25 @@
       border:1px solid rgba(17,24,39,.14);
       background: rgba(255,255,255,.75);
       color: var(--ink);
-      padding:10px 12px;
+      padding:12px 12px;
       border-radius:999px;
       outline:none;
       flex:1;
       min-width: 200px;
+      font-size:16px; /* ✅ prevents iOS zoom on focus */
     }
     .smallBtn{
       border:1px solid rgba(17,24,39,.14);
       background: rgba(255,255,255,.75);
       color: var(--ink);
-      padding:8px 10px;
+      padding:10px 12px;
       border-radius:999px;
       cursor:pointer;
-      font-weight:800;
+      font-weight:900;
       transition: transform .15s ease, background .15s ease, border-color .15s ease;
       line-height:1;
       white-space:nowrap;
+      touch-action: manipulation;
     }
     .smallBtn:hover{transform: translateY(-1px);background: rgba(17,24,39,.04);border-color: rgba(17,24,39,.22)}
     .status{
@@ -151,6 +158,7 @@
       line-height:1.35;
       max-height: 170px;
       overflow:auto;
+      -webkit-overflow-scrolling: touch;
     }
 
     .scene{
@@ -213,11 +221,12 @@
     .branch .hit{
       position:absolute;
       left:0;
-      top:-22px;
+      top:-26px;
       width: var(--len);
-      height: 44px;
+      height: 52px; /* ✅ bigger tap target */
       cursor:pointer;
       background: transparent;
+      -webkit-tap-highlight-color: transparent;
     }
     .branch .line{
       position:absolute;
@@ -245,6 +254,8 @@
       background: transparent;
       filter: drop-shadow(0 10px 16px rgba(17,24,39,.10));
       animation: pillFloat 2.9s ease-in-out infinite;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
     .branch .node.alt{ animation-duration: 3.4s; animation-delay: -1.2s; }
 
@@ -347,7 +358,7 @@
       display:none;
       align-items:center;
       justify-content:center;
-      padding:18px;
+      padding:14px;
     }
     .modal.show{display:flex}
     .modalCard{
@@ -369,6 +380,7 @@
       gap:10px;
       padding:12px 12px;
       border-bottom:1px solid rgba(17,24,39,.10);
+      flex-wrap:wrap; /* ✅ wraps on small screens */
     }
     .modalTitle{
       font-weight:900;
@@ -379,13 +391,13 @@
       overflow:hidden;
       text-overflow:ellipsis;
       white-space:nowrap;
-      max-width: 62%;
+      max-width: 100%;
     }
     .modalBtns{display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end}
     .modalBtn{
       border:1px solid rgba(17,24,39,.16);
       background: rgba(255,255,255,.75);
-      padding:8px 10px;
+      padding:10px 12px; /* ✅ better touch */
       border-radius:999px;
       cursor:pointer;
       font-weight:900;
@@ -398,6 +410,7 @@
       align-items:center;
       gap:8px;
       user-select:none;
+      touch-action: manipulation;
     }
     .modalBtn:hover{transform: translateY(-1px);background: rgba(17,24,39,.04);border-color: rgba(17,24,39,.22)}
     .modalBtn:active{transform: translateY(0px) scale(.99)}
@@ -429,12 +442,42 @@
       opacity:.9;
     }
 
+    /* ✅ PHONE LAYOUT: make panel full-width under topbar */
     @media (max-width: 780px){
-      .sidePanel{ right:auto; left:14px; align-items:flex-start; }
-      .panelCard{width:min(420px, calc(100vw - 28px))}
+      body{overflow:hidden;}
+      .topbar{
+        left: var(--mobilePanelPad);
+        right: var(--mobilePanelPad);
+        top: var(--mobilePanelPad);
+      }
+      .brand h1{font-size:13px}
+      .actions{gap:8px}
+      .btn{padding:10px 12px}
+
+      .sidePanel{
+        left: var(--mobilePanelPad);
+        right: var(--mobilePanelPad);
+        align-items:stretch;
+        top: calc(var(--mobilePanelPad) + var(--topbarH, 92px) + var(--mobilePanelGap));
+      }
+      .panelCard{
+        width:100%;
+        border-radius:18px;
+      }
       .row{justify-content:flex-start}
-      .modalTitle{max-width: 100%}
+      .input{min-width: 0; width: 100%;}
+      .smallBtn{width:auto}
+
+      /* give the center label a little lift so it doesn't sit under the panel */
+      .centerLabel{
+        top: 56%;
+      }
+
+      /* reduce tip width on phones */
+      .tip{max-width: 260px;}
     }
+
+    /* ✅ make hover behavior always "expanded" on touch devices */
     @media (hover:none){
       .branch .line{ width: var(--len); background: var(--lineHot); }
       .branch .node{ left: calc(var(--len) - 18px); transform: scale(1); opacity:1; }
@@ -531,9 +574,6 @@ const downloadBtn = document.getElementById("downloadBtn");
 const openNewBtn = document.getElementById("openNewBtn");
 const closeBtn = document.getElementById("closeBtn");
 
-let currentPreviewUrl = "";
-let currentPreviewName = "";
-
 let allFiles = [];
 let shownFiles = [];
 let branchObjs = [];
@@ -582,9 +622,6 @@ function displayName(full){
 
 /* ✅ PREVIEW modal */
 function previewFile(url, niceName){
-  currentPreviewUrl = url;
-  currentPreviewName = niceName;
-
   modalTitle.textContent = niceName || "Preview";
   modalLink.textContent = url;
 
@@ -592,8 +629,7 @@ function previewFile(url, niceName){
   downloadBtn.setAttribute("download", (niceName ? niceName.replace(/[\\/:*?"<>|]/g,"-") : "file") + ".pdf");
 
   const encoded = encodeURIComponent(url);
-  const viewerUrl = PDFJS_VIEWER + encoded;
-  viewer.src = viewerUrl;
+  viewer.src = PDFJS_VIEWER + encoded;
 
   const fallbackTimer = setTimeout(() => {
     try{
@@ -669,23 +705,25 @@ function topBottomScale(angleDeg){
   return clamp(scale, 0.5, 1.0);
 }
 
-/* safe geometry: reserve right panel space */
+/* safe geometry: on phones reserve NO right panel width */
 function computeSafeGeometry(fileCount){
   const r = scene.getBoundingClientRect();
   const w = r.width, h = r.height;
 
-  const safePad = 72;
-  const topHud = 80;
-  const rightPanelW = Math.min(360, w * 0.38) + 24;
+  const isPhone = window.matchMedia("(max-width: 780px)").matches;
+
+  const safePad = isPhone ? 44 : 72;
+  const topHud = isPhone ? 140 : 80; /* more space for full-width search card */
+  const rightPanelW = isPhone ? 0 : (Math.min(360, w * 0.38) + 24);
 
   const availW = (w - safePad*2) - rightPanelW;
   const availH = (h - safePad) - topHud;
 
-  const R = Math.min(availW, availH) * 0.28;
+  const R = Math.min(availW, availH) * (isPhone ? 0.25 : 0.28);
   const r0 = R * 1.05;
 
   const maxToEdge = Math.min(availW, availH) * 0.50;
-  const baseLen = clamp(maxToEdge, 200, 380);
+  const baseLen = clamp(maxToEdge, isPhone ? 150 : 200, isPhone ? 300 : 380);
   const jitter = baseLen * 0.18;
 
   const crowd = clamp(fileCount / 22, 0, 1);
@@ -788,7 +826,7 @@ async function load(){
       }))
       .sort((a,b)=> displayName(a.name).localeCompare(displayName(b.name)));
 
-    setStatus(`Found ${allFiles.length} PDF(s) in /${FOLDER}\nHover a branch to extend, then click a pill to PREVIEW.`);
+    setStatus(`Found ${allFiles.length} PDF(s) in /${FOLDER}\nTap a branch/pill to PREVIEW.`);
     applySearch();
   }catch(e){
     setStatus("ERROR: " + (e.message || e));
@@ -1061,6 +1099,7 @@ function animate(){
     ctxFx.stroke();
     ctxFx.restore();
 
+    // branch lines
     ctxLn.save();
     ctxLn.lineWidth = 1;
     ctxLn.lineCap = "round";
@@ -1105,6 +1144,7 @@ function animate(){
     }
 
     ctxLn.restore();
+
     rafId = requestAnimationFrame(frame);
   }
 
@@ -1117,6 +1157,7 @@ document.getElementById("reload").addEventListener("click", async () => {
   updateSidePanelOffset();
   requestAnimationFrame(updateSidePanelOffset);
 });
+
 q.addEventListener("input", applySearch);
 
 window.addEventListener("resize", () => {
@@ -1130,7 +1171,6 @@ window.addEventListener("resize", () => {
   await loadTexture();
   await load();
 
-  /* ✅ set panel offset after buttons wrap/layout */
   updateSidePanelOffset();
   requestAnimationFrame(updateSidePanelOffset);
 
