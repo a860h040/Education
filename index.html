@@ -34,17 +34,14 @@
   </div>
 
 <script>
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyeV9btcdbGnN7nlTqH1ClwjC2o7_S1WyfcNJkjDrHkIDZf8hiGFf2dy-w_xdE-6Ye6rw/exec";
+  const SCRIPT_URL = "PASTE_YOUR_NEW_EXEC_URL_HERE";
   const APP_URL    = location.origin + location.pathname.replace("login.html", "app.html");
 
-  // Set action + where Apps Script should redirect after login
   document.getElementById("loginForm").action = SCRIPT_URL;
   document.getElementById("returnUrl").value = APP_URL;
 
-  // Show message from redirect (if any)
   const params = new URLSearchParams(location.search);
   if (params.get("msg")) document.getElementById("msg").textContent = params.get("msg");
 </script>
 </body>
 </html>
-
