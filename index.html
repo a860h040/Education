@@ -3,72 +3,132 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Tutorial Videos</title>
+  <title>Tutorial Player</title>
   <style>
     body{font-family:system-ui,Segoe UI,Arial,sans-serif;margin:24px;max-width:980px}
+    h1{margin:0 0 12px}
     .row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
-    button{border:1px solid #ddd;background:#fff;padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:600}
-    button:hover{background:#f7f7f7}
-    button.active{border-color:#000;box-shadow:0 1px 0 rgba(0,0,0,.08)}
-    .card{border:1px solid #e5e5e5;border-radius:16px;padding:14px}
-    .title{font-size:14px;color:#444;margin:0 0 10px}
+    button{padding:10px 14px;border-radius:12px;border:1px solid #ddd;background:#fff;cursor:pointer;font-weight:800}
+    button:hover{background:#f6f6f6}
+    button.active{border-color:#000;box-shadow:0 1px 0 rgba(0,0,0,.10)}
+    .card{border:1px solid #e6e6e6;border-radius:16px;padding:14px}
     video{width:100%;height:auto;border-radius:14px;background:#000}
+    .small{color:#666;font-size:13px;margin-top:10px;line-height:1.35}
   </style>
 </head>
 <body>
+
   <h1>Tutorial Player</h1>
 
   <div class="row">
-    <button id="btn1" onclick="loadTutorial(1)">Tutorial 1</button>
-    <button id="btn2" onclick="loadTutorial(2)">Tutorial 2</button>
-    <button id="btn3" onclick="loadTutorial(3)">Tutorial 3</button>
+    <button id="btnT1">Tutorial 1</button>
+    <button id="btnT2">Tutorial 2</button>
+    <button id="btnT3">Tutorial 3</button>
   </div>
 
   <div class="card">
-    <p class="title" id="nowPlaying">Select a tutorial to play.</p>
-    <video id="player" controls playsinline preload="metadata">
-      Sorry, your browser does not support the video tag.
-    </video>
+    <div id="status" class="small">Choose a tutorial to play.</div>
+
+    <video id="player" controls playsinline preload="auto"></video>
+
+    <!-- Hidden buffer video used only for preloading the next part -->
+    <video id="buffer" preload="auto" playsinline muted style="display:none;"></video>
   </div>
 
   <script>
-    // ✅ Tutorial 1 uses the GitHub "raw" URL pattern and file name "2.mp4"
-    // Change: YOUR_USER, YOUR_REPO, main, and the folder name (videos/) if needed.
-    const tutorials = {
-      1: {
-        title: "Tutorial 1",
-        url: "https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/videos/2.mp4"
-      },
-      2: { title: "Tutorial 2", url: "" },
-      3: { title: "Tutorial 3", url: "" }
+    const BASE = "https://raw.githubusercontent.com/a860h040/Education/main/";
+
+    // Tutorial 1: 1 -> 2
+    // Tutorial 2: 3 -> 4 -> 5 -> 6
+    // Tutorial 3: 7 -> 8
+    const PLAYLISTS = {
+      t1: [
+        { title: "Part 1", url: BASE + "1.mov" },
+        { title: "Part 2", url: BASE + "2.mov" }
+      ],
+      t2: [
+        { title: "Part 3", url: BASE + "3.mov" },
+        { title: "Part 4", url: BASE + "4.mov" },
+        { title: "Part 5", url: BASE + "5.mov" },
+        { title: "Part 6", url: BASE + "6.mov" }
+      ],
+      t3: [
+        { title: "Part 7", url: BASE + "7.mov" },
+        { title: "Part 8", url: BASE + "8.mov" }
+      ]
     };
 
-    function setActive(n){
-      [1,2,3].forEach(i=>{
-        document.getElementById("btn"+i).classList.toggle("active", i===n);
-      });
+    const btnT1  = document.getElementById("btnT1");
+    const btnT2  = document.getElementById("btnT2");
+    const btnT3  = document.getElementById("btnT3");
+    const player = document.getElementById("player");
+    const buffer = document.getElementById("buffer");
+    const status = document.getElementById("status");
+
+    let currentParts = [];
+    let idx = 0;
+
+    function setActive(which){
+      btnT1.classList.toggle("active", which === "t1");
+      btnT2.classList.toggle("active", which === "t2");
+      btnT3.classList.toggle("active", which === "t3");
     }
 
-    function loadTutorial(n){
-      const t = tutorials[n];
-      if(!t || !t.url){
-        alert("Tutorial " + n + " URL is not set yet.");
-        return;
+    function preloadNext(i){
+      const next = i + 1;
+      if (next < currentParts.length) {
+        buffer.src = currentParts[next].url;
+        buffer.load();
+      } else {
+        buffer.removeAttribute("src");
+        buffer.load();
       }
+    }
 
-      const player = document.getElementById("player");
-      document.getElementById("nowPlaying").textContent = "Now playing: " + t.title;
+    async function playPart(i){
+      idx = i;
+      const part = currentParts[idx];
+      status.textContent = `Loading ${part.title}...`;
 
-      setActive(n);
+      // Preload next part ASAP
+      preloadNext(idx);
 
+      // Load current part cleanly
       player.pause();
       player.removeAttribute("src");
       player.load();
 
-      player.src = t.url;
+      player.src = part.url;
       player.load();
-      player.play().catch(()=>{});
+
+      try {
+        await player.play();
+        status.textContent = `Playing ${part.title}`;
+      } catch {
+        status.textContent = `Loaded ${part.title}. Press Play if it didn’t start automatically.`;
+      }
     }
+
+    function startTutorial(key){
+      currentParts = PLAYLISTS[key].slice();
+      setActive(key);
+      playPart(0);
+    }
+
+    // Auto-advance immediately
+    player.addEventListener("ended", () => {
+      const next = idx + 1;
+      if (next < currentParts.length) {
+        playPart(next);
+      } else {
+        status.textContent = "Finished.";
+      }
+    });
+
+    btnT1.addEventListener("click", () => startTutorial("t1"));
+    btnT2.addEventListener("click", () => startTutorial("t2"));
+    btnT3.addEventListener("click", () => startTutorial("t3"));
   </script>
+
 </body>
 </html>
