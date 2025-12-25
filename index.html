@@ -15,24 +15,27 @@
       --btnHover:rgba(17,24,39,.06);
       --tipBg:rgba(255,255,255,.85);
       --tipBorder:rgba(17,24,39,.14);
+
+      --overlay: rgba(17,24,39,.55);
+      --cardBg: rgba(255,255,255,.92);
+      --cardBorder: rgba(17,24,39,.10);
     }
     *{box-sizing:border-box}
-
     body{
       margin:0;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       background: var(--bg);
       color: var(--ink);
+      
       overflow:hidden;
       min-height:100vh;
     }
 
-    /* top buttons */
     .topbar{
       position:fixed;
       top:14px; left:14px; right:14px;
       display:flex;
-      align-items:center;
+      align-items:flex-start;
       justify-content:space-between;
       gap:12px;
       z-index:30;
@@ -51,14 +54,21 @@
       letter-spacing:.10em;
       text-transform:uppercase;
       opacity:.88;
+      white-space:nowrap;
     }
-    .actions{display:flex;gap:10px;flex-wrap:wrap;pointer-events:auto}
+    .actions{
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+      gap:8px;
+      pointer-events:auto;
+    }
     .btn{
       appearance:none;
       border:1px solid var(--btnBorder);
       background: rgba(17,24,39,.03);
       color: var(--ink);
-      padding:10px 12px;
+      padding:8px 10px;
       border-radius:999px;
       cursor:pointer;
       text-decoration:none;
@@ -68,6 +78,8 @@
       display:inline-flex;
       align-items:center;
       gap:8px;
+      line-height:1;
+      white-space:nowrap;
     }
     .btn:hover{transform: translateY(-1px);background: var(--btnHover);border-color: rgba(17,24,39,.22)}
     .btn:active{transform: translateY(0px) scale(.99)}
@@ -78,14 +90,73 @@
       opacity:.9;
     }
 
-    /* fullscreen scene */
+    .sidePanel{
+      position:fixed;
+      top:14px;
+      right:14px;
+      z-index:28;
+      pointer-events:none;
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+      gap:10px;
+      margin-top: 96px;
+    }
+    .panelCard{
+      pointer-events:auto;
+      width:min(360px, calc(100vw - 28px));
+      border-radius:16px;
+      background: rgba(255,255,255,.80);
+      box-shadow: 0 0 0 1px rgba(17,24,39,.06) inset;
+      padding:10px;
+      backdrop-filter: blur(6px);
+    }
+    .row{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+    }
+    .input{
+      border:1px solid rgba(17,24,39,.14);
+      background: rgba(255,255,255,.75);
+      color: var(--ink);
+      padding:10px 12px;
+      border-radius:999px;
+      outline:none;
+      flex:1;
+      min-width: 200px;
+    }
+    .smallBtn{
+      border:1px solid rgba(17,24,39,.14);
+      background: rgba(255,255,255,.75);
+      color: var(--ink);
+      padding:8px 10px;
+      border-radius:999px;
+      cursor:pointer;
+      font-weight:800;
+      transition: transform .15s ease, background .15s ease, border-color .15s ease;
+      line-height:1;
+      white-space:nowrap;
+    }
+    .smallBtn:hover{transform: translateY(-1px);background: rgba(17,24,39,.04);border-color: rgba(17,24,39,.22)}
+    .status{
+      margin-top:10px;
+      color: rgba(17,24,39,.60);
+      font-size:13px;
+      white-space:pre-wrap;
+      line-height:1.35;
+      max-height: 170px;
+      overflow:auto;
+    }
+
     .scene{
       position:fixed;
       inset:0;
       background:
         radial-gradient(1200px 900px at 50% 45%, rgba(17,24,39,.05), rgba(255,255,255,0) 65%),
         #fff;
-      /* ✅ hard clip everything (canvas + tips + nodes) */
       overflow:hidden;
     }
     .scene:before{
@@ -140,9 +211,9 @@
     .branch .hit{
       position:absolute;
       left:0;
-      top:-18px;
+      top:-22px;
       width: var(--len);
-      height: 36px;
+      height: 44px;
       cursor:pointer;
       background: transparent;
     }
@@ -158,37 +229,87 @@
       box-shadow: 0 0 12px rgba(17,24,39,.06);
       opacity:.9;
     }
+
+    /* Pills at branch ends */
     .branch .node{
       position:absolute;
-      left: calc(var(--lenShort) - 11px);
-      top: -11px;
-      width: 22px;height: 22px;border-radius: 50%;
-      background: rgba(255,255,255,.75);
-      border:1px solid rgba(17,24,39,.14);
-      box-shadow: 0 0 0 1px rgba(17,24,39,.02) inset, 0 0 18px rgba(17,24,39,.06);
+      left: calc(var(--lenShort) - 18px);
+      top: -18px;
+      width: 36px;
+      height: 36px;
       transform: scale(.25);
       opacity: 0;
-      transition: transform .22s ease, opacity .22s ease, left .22s ease, background .22s ease, border-color .22s ease;
-      display:grid;place-items:center;
+      transition: transform .22s ease, opacity .22s ease, left .22s ease, filter .22s ease;
+      cursor:pointer;
+      background: transparent;
+      filter: drop-shadow(0 10px 16px rgba(17,24,39,.10));
+      animation: pillFloat 2.9s ease-in-out infinite;
     }
-    .node::after{
+    .branch .node.alt{ animation-duration: 3.4s; animation-delay: -1.2s; }
+
+    .branch .node::before{
       content:"";
-      width:7px;height:7px;border-radius:50%;
-      background: rgba(17,24,39,.85);
-      box-shadow: 0 0 12px rgba(17,24,39,.10);
-      opacity:.9;
+      position:absolute; inset:0;
+      border-radius:999px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 -10px 18px rgba(17,24,39,.08);
+      background: linear-gradient(135deg, rgba(17,24,39,.08), rgba(255,255,255,.9));
     }
+    .branch .node.capsule{ animation-name: capsuleDrift; }
+    .branch .node.capsule::before{
+      background:
+        linear-gradient(90deg, rgba(17,24,39,.18) 0 50%, rgba(17,24,39,.06) 50% 100%),
+        linear-gradient(135deg, rgba(17,24,39,.12), rgba(255,255,255,.95));
+    }
+    .branch .node.capsule::after{
+      content:"";
+      position:absolute; left:50%; top:6px; bottom:6px; width:1px;
+      transform: translateX(-50%);
+      background: rgba(17,24,39,.28);
+      opacity:.55; border-radius:999px;
+    }
+    .branch .node.tablet{ border-radius: 14px; animation-name: tabletDrift; }
+    .branch .node.tablet::before{
+      border-radius: 14px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.95), rgba(17,24,39,.06)),
+        linear-gradient(135deg, rgba(17,24,39,.10), rgba(255,255,255,.9));
+    }
+    .branch .node.tablet::after{
+      content:"";
+      position:absolute; left:7px; right:7px; top:50%; height:1px;
+      transform: translateY(-50%);
+      background: rgba(17,24,39,.25);
+      opacity:.55; border-radius:999px;
+    }
+
+    @keyframes pillFloat{
+      0%,100%{ transform: translateY(0) scale(var(--pillScale,1)); }
+      50%{ transform: translateY(-2px) scale(var(--pillScale,1)); }
+    }
+    @keyframes capsuleDrift{
+      0%,100%{ transform: translateY(0) rotate(-8deg) scale(var(--pillScale,1)); }
+      50%{ transform: translateY(-3px) rotate(8deg) scale(var(--pillScale,1)); }
+    }
+    @keyframes tabletDrift{
+      0%,100%{ transform: translateY(0) rotate(10deg) scale(var(--pillScale,1)); }
+      50%{ transform: translateY(-3px) rotate(-10deg) scale(var(--pillScale,1)); }
+    }
+
     .branch:hover .line{
       width: var(--len);
       background: var(--lineHot);
       box-shadow: 0 0 26px rgba(17,24,39,.12);
     }
     .branch:hover .node{
-      left: calc(var(--len) - 11px);
-      transform: scale(1);
+      left: calc(var(--len) - 18px);
       opacity: 1;
-      background: rgba(255,255,255,.92);
-      border-color: rgba(17,24,39,.26);
+      transform: scale(1);
+      --pillScale: 1;
+      filter: drop-shadow(0 14px 22px rgba(17,24,39,.14));
+    }
+    .branch:hover .node:hover{
+      transform: scale(1.08);
+      filter: drop-shadow(0 18px 28px rgba(17,24,39,.18));
     }
 
     .tip{
@@ -217,65 +338,105 @@
       transform: rotate(calc(var(--angle) * -1)) translateY(-2px);
     }
 
-    /* bottom bar */
-    .bottomBar{
-      position:fixed;
-      left:50%;
-      transform: translateX(-50%);
-      bottom:16px;
-      width:min(920px, calc(100vw - 24px));
+    /* ---------- PREVIEW MODAL ---------- */
+    .modal{
+      position:fixed; inset:0;
+      background: var(--overlay);
+      z-index:60;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+    .modal.show{display:flex}
+    .modalCard{
+      width:min(1100px, 96vw);
+      height:min(720px, 92vh);
+      background: var(--cardBg);
+      border:1px solid var(--cardBorder);
+      border-radius:18px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 22px 70px rgba(0,0,0,.22);
       display:flex;
-      gap:10px;
-      align-items:flex-end;
+      flex-direction:column;
+      overflow:hidden;
+    }
+    .modalHead{
+      display:flex;
+      align-items:center;
       justify-content:space-between;
-      z-index:25;
-      pointer-events:none;
+      gap:10px;
+      padding:12px 12px;
+      border-bottom:1px solid rgba(17,24,39,.10);
     }
-    .status{
-      pointer-events:auto;
-      flex:1;
-      padding:10px 12px;
-      border-radius:16px;
-      background: rgba(255,255,255,.78);
-      color: rgba(17,24,39,.60);
-      font-size:13px;
-      white-space:pre-wrap;
-      line-height:1.35;
-      box-shadow: 0 0 0 1px rgba(17,24,39,.06) inset;
-      max-height: 110px;
-      overflow:auto;
+    .modalTitle{
+      font-weight:900;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      font-size:12px;
+      opacity:.85;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      max-width: 62%;
     }
-    .controls{pointer-events:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .input{
-      border:1px solid rgba(17,24,39,.14);
+    .modalBtns{display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end}
+    .modalBtn{
+      border:1px solid rgba(17,24,39,.16);
       background: rgba(255,255,255,.75);
-      color: var(--ink);
-      padding:10px 12px;
-      border-radius:999px;
-      outline:none;
-      min-width: 260px;
-    }
-    .smallBtn{
-      border:1px solid rgba(17,24,39,.14);
-      background: rgba(255,255,255,.75);
-      color: var(--ink);
-      padding:10px 12px;
+      padding:8px 10px;
       border-radius:999px;
       cursor:pointer;
-      font-weight:800;
+      font-weight:900;
+      letter-spacing:.02em;
+      line-height:1;
       transition: transform .15s ease, background .15s ease, border-color .15s ease;
+      text-decoration:none;
+      color: var(--ink);
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      user-select:none;
     }
-    .smallBtn:hover{transform: translateY(-1px);background: rgba(17,24,39,.04);border-color: rgba(17,24,39,.22)}
+    .modalBtn:hover{transform: translateY(-1px);background: rgba(17,24,39,.04);border-color: rgba(17,24,39,.22)}
+    .modalBtn:active{transform: translateY(0px) scale(.99)}
+    .modalBody{flex:1; background:#fff}
+    .modalBody iframe{
+      width:100%; height:100%;
+      border:0;
+      background:#fff;
+    }
+    .modalHint{
+      padding:10px 12px;
+      border-top:1px solid rgba(17,24,39,.10);
+      color: rgba(17,24,39,.60);
+      font-size:12px;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .modalHint .mono{font-family: ui-monospace, Menlo, Consolas, monospace; word-break:break-all;}
+    .kbd{
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      border:1px solid rgba(17,24,39,.18);
+      background: rgba(255,255,255,.75);
+      border-radius:10px;
+      padding:2px 8px;
+      font-size:12px;
+      opacity:.9;
+    }
 
     @media (max-width: 780px){
-      .bottomBar{flex-direction:column; align-items:stretch}
-      .controls{justify-content:space-between}
-      .input{min-width: 0; width:100%}
+      .sidePanel{ right:auto; left:14px; align-items:flex-start; margin-top: 76px; }
+      .panelCard{width:min(420px, calc(100vw - 28px))}
+      .row{justify-content:flex-start}
+      .modalTitle{max-width: 100%}
     }
-
     @media (hover:none){
       .branch .line{ width: var(--len); background: var(--lineHot); }
-      .branch .node{ left: calc(var(--len) - 11px); transform: scale(1); opacity:1; }
+      .branch .node{ left: calc(var(--len) - 18px); transform: scale(1); opacity:1; }
       .branch .tip{ opacity:1; }
     }
   </style>
@@ -286,7 +447,7 @@
     <canvas id="lines"></canvas>
 
     <div class="centerLabel" aria-hidden="true">
-      <div class="title">PDF FILES</div>
+      <div class="title">Aqtubis Docs</div>
       <div class="sub" id="countSub">Loading…</div>
     </div>
 
@@ -306,11 +467,38 @@
     </div>
   </div>
 
-  <div class="bottomBar">
-    <div class="status" id="status">Loading from GitHub…</div>
-    <div class="controls">
-      <input class="input" id="q" placeholder="Search filename..." />
-      <button class="smallBtn" id="reload">Reload</button>
+  <div class="sidePanel">
+    <div class="panelCard">
+      <div class="row">
+        <input class="input" id="q" placeholder="Search filename..." />
+        <button class="smallBtn" id="reload">Reload</button>
+      </div>
+      <div class="status" id="status">Loading from GitHub…</div>
+    </div>
+  </div>
+
+  <!-- ✅ Preview modal (opens BEFORE download) -->
+  <div class="modal" id="modal" aria-hidden="true">
+    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modalHead">
+        <div class="modalTitle" id="modalTitle">Preview</div>
+        <div class="modalBtns">
+          <a class="modalBtn" id="downloadBtn" href="#" download>
+            <span style="width:7px;height:7px;border-radius:50%;background:rgba(17,24,39,.85);display:inline-block"></span>
+            Download
+          </a>
+          <button class="modalBtn" id="openNewBtn" type="button">Open in new tab</button>
+          <button class="modalBtn" id="closeBtn" type="button">Close <span class="kbd">Esc</span></button>
+        </div>
+      </div>
+      <div class="modalBody">
+        <!-- Using PDF.js viewer hosted by Mozilla (no libs needed) -->
+        <iframe id="viewer" title="PDF Preview"></iframe>
+      </div>
+      <div class="modalHint">
+        <div>Click <b>Download</b> only after preview.</div>
+        <div class="mono" id="modalLink"></div>
+      </div>
     </div>
   </div>
 
@@ -320,9 +508,10 @@ const REPO   = "Education";
 const BRANCH = "main";
 const FOLDER = "pdfs";
 const API = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(FOLDER)}?ref=${encodeURIComponent(BRANCH)}`;
-
-// upload your texture to the repo and set path here (optional)
 const TEXTURE_URL = "./assets/roof.png";
+
+/* PDF.js viewer (hosted). If blocked by your browser, fallback to native iframe src. */
+const PDFJS_VIEWER = "https://mozilla.github.io/pdf.js/web/viewer.html?file=";
 
 const scene = document.getElementById("scene");
 const fx = document.getElementById("fx");
@@ -332,6 +521,18 @@ const branchesEl = document.getElementById("branches");
 const q = document.getElementById("q");
 const countSub = document.getElementById("countSub");
 
+/* modal refs */
+const modal = document.getElementById("modal");
+const viewer = document.getElementById("viewer");
+const modalTitle = document.getElementById("modalTitle");
+const modalLink = document.getElementById("modalLink");
+const downloadBtn = document.getElementById("downloadBtn");
+const openNewBtn = document.getElementById("openNewBtn");
+const closeBtn = document.getElementById("closeBtn");
+
+let currentPreviewUrl = "";
+let currentPreviewName = "";
+
 let allFiles = [];
 let shownFiles = [];
 let branchObjs = [];
@@ -339,6 +540,10 @@ let rafId = 0;
 
 let texImg = null;
 let texPattern = null;
+
+/* pills swimming INSIDE the center blob */
+let swimPills = [];
+let lastFrameT = 0;
 
 function setStatus(t){ statusEl.textContent = t; }
 function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
@@ -356,7 +561,6 @@ function resizeCanvas(c){
   ctx.setTransform(dpr,0,0,dpr,0,0);
   return { w:r.width, h:r.height };
 }
-function openUrl(url){ window.open(url, "_blank", "noopener,noreferrer"); }
 
 function displayName(full){
   const name = String(full || "");
@@ -365,6 +569,65 @@ function displayName(full){
   if (parts.length >= 3) return parts.slice(2).join("_").trim() || noExt.trim();
   return noExt.trim();
 }
+
+/* ✅ PREVIEW instead of instant download */
+function previewFile(url, niceName){
+  currentPreviewUrl = url;
+  currentPreviewName = niceName;
+
+  modalTitle.textContent = niceName || "Preview";
+  modalLink.textContent = url;
+
+  // Download button uses direct URL
+  downloadBtn.href = url;
+  downloadBtn.setAttribute("download", (niceName ? niceName.replace(/[\\/:*?"<>|]/g,"-") : "file") + ".pdf");
+
+  // Prefer PDF.js viewer (better preview), fallback if blocked
+  const encoded = encodeURIComponent(url);
+  const viewerUrl = PDFJS_VIEWER + encoded;
+
+  viewer.src = viewerUrl;
+
+  // if viewer fails (some browsers block), fallback after short delay
+  const fallbackTimer = setTimeout(() => {
+    // If still at about:blank or not loaded, fallback
+    try{
+      if (!viewer.contentWindow || viewer.contentWindow.location.href === "about:blank"){
+        viewer.src = url;
+      }
+    }catch(e){
+      // cross-origin; just set fallback
+      viewer.src = url;
+    }
+  }, 900);
+
+  openNewBtn.onclick = () => window.open(url, "_blank", "noopener,noreferrer");
+
+  showModal(true);
+
+  // clear timer when modal closes
+  modal._fallbackTimer = fallbackTimer;
+}
+
+function showModal(on){
+  if (on){
+    modal.classList.add("show");
+    modal.setAttribute("aria-hidden","false");
+  } else {
+    modal.classList.remove("show");
+    modal.setAttribute("aria-hidden","true");
+    viewer.src = "about:blank";
+    if (modal._fallbackTimer) clearTimeout(modal._fallbackTimer);
+  }
+}
+
+closeBtn.addEventListener("click", () => showModal(false));
+modal.addEventListener("click", (e) => {
+  if (e.target === modal) showModal(false);
+});
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && modal.classList.contains("show")) showModal(false);
+});
 
 function wavyRadius(angle, t, R){
   const n =
@@ -385,7 +648,6 @@ function buildTexturePattern(ctx){
   octx.drawImage(texImg, 0, 0, oc.width, oc.height);
   return ctx.createPattern(oc, "repeat");
 }
-
 async function loadTexture(){
   return new Promise((resolve) => {
     const img = new Image();
@@ -396,37 +658,39 @@ async function loadTexture(){
   });
 }
 
-/* ✅ Ensure branches never exceed viewport */
+/* top & bottom branches shorter */
+function topBottomScale(angleDeg){
+  const a = ((angleDeg % 360) + 360) % 360;
+  const distTop = Math.min(Math.abs(a - 270), Math.abs(a - (270+360)));
+  const distBot = Math.abs(a - 90);
+  const influence = Math.max(0, 1 - (Math.min(distTop, distBot) / 85));
+  const scale = 1 - influence * 0.50;
+  return clamp(scale, 0.5, 1.0);
+}
+
+/* safe geometry: reserve right panel space */
 function computeSafeGeometry(fileCount){
   const r = scene.getBoundingClientRect();
   const w = r.width, h = r.height;
 
-  const safePad = 72;          // keep away from edges
-  const bottomHud = 150;       // space for bottom bar
-  const topHud = 80;           // space for top buttons
-  const availW = w - safePad*2;
-  const availH = h - safePad - bottomHud - topHud;
+  const safePad = 72;
+  const topHud = 80;
+  const rightPanelW = Math.min(360, w * 0.38) + 24;
 
-  // center radius
-  const R = Math.min(availW, availH) * 0.26;
+  const availW = (w - safePad*2) - rightPanelW;
+  const availH = (h - safePad) - topHud;
+
+  const R = Math.min(availW, availH) * 0.28;
   const r0 = R * 1.05;
 
-  // max line length so nodes/tips don't go out
-  // (tips can add extra, but we clip the whole scene anyway)
-  const maxToEdge = Math.min(availW, availH) * 0.48;
-  const baseLen = clamp(maxToEdge, 220, 420);
+  const maxToEdge = Math.min(availW, availH) * 0.50;
+  const baseLen = clamp(maxToEdge, 200, 380);
   const jitter = baseLen * 0.18;
 
-  // if many files, shorten lines a bit
   const crowd = clamp(fileCount / 22, 0, 1);
   const baseLen2 = baseLen * (1 - crowd*0.18);
 
-  return {
-    R,
-    r0,
-    baseLen: baseLen2,
-    jitter
-  };
+  return { R, r0, baseLen: baseLen2, jitter };
 }
 
 function buildBranches(files){
@@ -434,7 +698,6 @@ function buildBranches(files){
   branchObjs = [];
 
   const geom = computeSafeGeometry(files.length);
-  const R = geom.R;
   const r0 = geom.r0;
 
   const MAX = 22;
@@ -462,7 +725,9 @@ function buildBranches(files){
     }
     usedAngles.push(ang);
 
-    const len = clamp(baseLen + (seed - 0.5) * 2 * jitter, baseLen*0.78, baseLen*1.08);
+    const tb = topBottomScale(ang);
+    const lenBase = clamp(baseLen + (seed - 0.5) * 2 * jitter, baseLen*0.78, baseLen*1.08);
+    const len = lenBase * tb;
     const lenShort = len * shortFactor;
 
     const nice = displayName(f.name);
@@ -476,13 +741,17 @@ function buildBranches(files){
     branch.style.setProperty("--r0", r0 + "px");
 
     const lineEl = document.createElement("div"); lineEl.className = "line";
-    const nodeEl = document.createElement("div"); nodeEl.className = "node";
+    const nodeEl = document.createElement("div");
+    nodeEl.className = "node " + (i % 2 === 0 ? "capsule" : "tablet") + (i % 3 === 0 ? " alt" : "");
     const hitEl  = document.createElement("div"); hitEl.className  = "hit"; hitEl.title = nice;
     const tip    = document.createElement("div"); tip.className    = "tip"; tip.textContent = nice;
 
-    hitEl.addEventListener("click", () => openUrl(url));
-    nodeEl.addEventListener("click", () => openUrl(url));
-    hitEl.addEventListener("touchstart", (e)=>{ e.preventDefault(); openUrl(url); }, {passive:false});
+    // ✅ Click should open PREVIEW modal
+    const openPreview = () => previewFile(url, nice);
+
+    hitEl.addEventListener("click", openPreview);
+    nodeEl.addEventListener("click", openPreview);
+    hitEl.addEventListener("touchstart", (e)=>{ e.preventDefault(); openPreview(); }, {passive:false});
 
     branch.appendChild(lineEl);
     branch.appendChild(nodeEl);
@@ -490,7 +759,7 @@ function buildBranches(files){
     branch.appendChild(tip);
     branchesEl.appendChild(branch);
 
-    branchObjs.push({ angleRad: ang * Math.PI/180, len, lenShort, seed, el: branch });
+    branchObjs.push({ angleRad: ang * Math.PI/180, angleDeg: ang, len, lenShort, seed, el: branch });
   });
 
   countSub.textContent = files.length ? `${files.length} file(s)` : "No PDFs found";
@@ -504,7 +773,7 @@ async function load(){
     const r = await fetch(API);
     if (!r.ok){
       const text = await r.text();
-      setStatus(`ERROR: GitHub API ${r.status}\n${text}\n\nIf your repo is PRIVATE, this will fail on GitHub Pages.`);
+      setStatus(`ERROR: GitHub API ${r.status}\n${text}\n\nIf your repo is PRIVATE, preview/listing will fail on GitHub Pages.`);
       allFiles = [];
       buildBranches([]);
       return;
@@ -515,12 +784,12 @@ async function load(){
       .filter(x => x && x.type === "file" && (x.name||"").toLowerCase().endsWith(".pdf"))
       .map(x => ({
         name: x.name,
-        download_url: x.download_url,
+        download_url: x.download_url, // direct
         raw_url: `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${x.path}`
       }))
       .sort((a,b)=> displayName(a.name).localeCompare(displayName(b.name)));
 
-    setStatus(`Found ${allFiles.length} PDF(s) in /${FOLDER}\nHover a branch to extend, then click the node to open.`);
+    setStatus(`Found ${allFiles.length} PDF(s) in /${FOLDER}\nHover a branch to extend, then click a pill to PREVIEW.`);
     applySearch();
   }catch(e){
     setStatus("ERROR: " + (e.message || e));
@@ -535,6 +804,166 @@ function applySearch(){
   buildBranches(shownFiles);
 }
 
+/* --------- center “swim pills” helpers ---------- */
+function rand(a,b){ return a + Math.random()*(b-a); }
+
+function resetSwimPills(R){
+  const n = clamp(Math.round(R / 14), 10, 22);
+  swimPills = [];
+  for (let i=0;i<n;i++){
+    const ang = rand(0, Math.PI*2);
+    const rad = Math.sqrt(Math.random()) * (R * 0.70);
+    const x = Math.cos(ang) * rad;
+    const y = Math.sin(ang) * rad;
+
+    const speed = rand(12, 28);
+    const a2 = rand(0, Math.PI*2);
+    const vx = Math.cos(a2) * speed;
+    const vy = Math.sin(a2) * speed;
+
+    const type = (i % 2 === 0) ? "capsule" : "tablet";
+    const size = rand(R*0.055, R*0.085);
+    const thick = size * rand(0.42, 0.55);
+    swimPills.push({ x, y, vx, vy, rot: rand(-Math.PI, Math.PI), vr: rand(-0.9, 0.9), type, size, thick });
+  }
+}
+
+function drawRoundedRect(ctx, x, y, w, h, r){
+  const rr = Math.min(r, w/2, h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+rr, y);
+  ctx.arcTo(x+w, y,   x+w, y+h, rr);
+  ctx.arcTo(x+w, y+h, x,   y+h, rr);
+  ctx.arcTo(x,   y+h, x,   y,   rr);
+  ctx.arcTo(x,   y,   x+w, y,   rr);
+  ctx.closePath();
+}
+
+function drawSwimPill(ctx, p){
+  const L = p.size;
+  const H = p.thick;
+
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot);
+
+  // shadow
+  ctx.save();
+  ctx.globalAlpha = 0.12;
+  ctx.filter = "blur(3px)";
+  ctx.fillStyle = "rgba(17,24,39,0.45)";
+  drawRoundedRect(ctx, -L/2+1, -H/2+2, L, H, H/2);
+  ctx.fill();
+  ctx.restore();
+
+  if (p.type === "capsule"){
+    const r = H/2;
+    ctx.save();
+    drawRoundedRect(ctx, -L/2, -H/2, L, H, r);
+    ctx.clip();
+
+    ctx.fillStyle = "rgba(17,24,39,0.14)";
+    ctx.fillRect(-L/2, -H/2, L/2, H);
+    ctx.fillStyle = "rgba(17,24,39,0.06)";
+    ctx.fillRect(0, -H/2, L/2, H);
+
+    const g = ctx.createLinearGradient(-L/2, -H/2, L/2, H/2);
+    g.addColorStop(0, "rgba(255,255,255,0.55)");
+    g.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(-L/2, -H/2, L, H);
+
+    ctx.restore();
+
+    ctx.save();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(17,24,39,0.18)";
+    drawRoundedRect(ctx, -L/2, -H/2, L, H, r);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.strokeStyle = "rgba(17,24,39,0.28)";
+    ctx.globalAlpha = 0.55;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, -H/2 + 2);
+    ctx.lineTo(0,  H/2 - 2);
+    ctx.stroke();
+    ctx.restore();
+  } else {
+    const r = Math.min(14, H*0.38);
+    ctx.save();
+    ctx.fillStyle = "rgba(17,24,39,0.06)";
+    drawRoundedRect(ctx, -L/2, -H/2, L, H, r);
+    ctx.fill();
+
+    const g2 = ctx.createLinearGradient(0, -H/2, 0, H/2);
+    g2.addColorStop(0, "rgba(255,255,255,0.70)");
+    g2.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = g2;
+    drawRoundedRect(ctx, -L/2, -H/2, L, H, r);
+    ctx.fill();
+
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(17,24,39,0.16)";
+    drawRoundedRect(ctx, -L/2, -H/2, L, H, r);
+    ctx.stroke();
+
+    ctx.globalAlpha = 0.55;
+    ctx.strokeStyle = "rgba(17,24,39,0.26)";
+    ctx.beginPath();
+    ctx.moveTo(-L/2 + 6, 0);
+    ctx.lineTo(L/2 - 6, 0);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+function updateSwimPills(dt, t, R){
+  const margin = Math.max(10, R * 0.12);
+  const maxSpeed = 60;
+
+  for (const p of swimPills){
+    p.vx += Math.sin(t*0.8 + p.x*0.01) * 0.6 * dt;
+    p.vy += Math.cos(t*0.7 + p.y*0.01) * 0.6 * dt;
+
+    const sp = Math.hypot(p.vx, p.vy);
+    if (sp > maxSpeed){
+      const k = maxSpeed / sp;
+      p.vx *= k; p.vy *= k;
+    }
+
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.rot += p.vr * dt;
+
+    const ang = Math.atan2(p.y, p.x);
+    const rr = wavyRadius(ang, t, R) - margin;
+    const d  = Math.hypot(p.x, p.y);
+
+    if (d > rr){
+      const nx = p.x / (d || 1);
+      const ny = p.y / (d || 1);
+
+      p.x = nx * rr;
+      p.y = ny * rr;
+
+      const dot = p.vx*nx + p.vy*ny;
+      p.vx = p.vx - 2*dot*nx;
+      p.vy = p.vy - 2*dot*ny;
+
+      p.vx += rand(-12, 12);
+      p.vy += rand(-12, 12);
+    }
+
+    p.vx *= (1 - 0.06*dt);
+    p.vy *= (1 - 0.06*dt);
+  }
+}
+
 function animate(){
   const s1 = resizeCanvas(fx);
   resizeCanvas(lines);
@@ -547,16 +976,26 @@ function animate(){
   const cx = w/2, cy = h/2;
 
   let t0 = performance.now();
+  lastFrameT = t0;
 
   function frame(now){
     const t = (now - t0) / 1000;
+    const dt = Math.min(0.033, Math.max(0.001, (now - lastFrameT) / 1000));
+    lastFrameT = now;
+
     ctxFx.clearRect(0,0,w,h);
     ctxLn.clearRect(0,0,w,h);
 
-    // center size derived from safe geometry
     const geom = computeSafeGeometry(shownFiles.length || allFiles.length || 0);
     const R = geom.R;
     const pts = 180;
+
+    if (!swimPills.length){
+      resetSwimPills(R);
+    } else {
+      const want = clamp(Math.round(R / 14), 10, 22);
+      if (Math.abs(swimPills.length - want) >= 4) resetSwimPills(R);
+    }
 
     function blobPath(ctx){
       ctx.beginPath();
@@ -579,7 +1018,7 @@ function animate(){
     ctxFx.fill();
     ctxFx.restore();
 
-    // thick textured wall ring
+    // wall ring
     ctxFx.save();
     blobPath(ctxFx);
     ctxFx.lineJoin = "round";
@@ -591,24 +1030,33 @@ function animate(){
     ctxFx.stroke();
     ctxFx.restore();
 
-    // inner fill
+    // inner fill + clip
     ctxFx.save();
     blobPath(ctxFx);
     ctxFx.clip();
+
     if (texPattern){
-      ctxFx.globalAlpha = 0.55;
+      ctxFx.globalAlpha = 0.18;
       ctxFx.fillStyle = texPattern;
       ctxFx.fillRect(cx - R*2.2, cy - R*2.2, R*4.4, R*4.4);
       ctxFx.globalAlpha = 1;
     } else {
-      ctxFx.fillStyle = "rgba(17,24,39,0.03)";
+      ctxFx.fillStyle = "rgba(17,24,39,0.02)";
       ctxFx.fillRect(cx - R*2.2, cy - R*2.2, R*4.4, R*4.4);
     }
+
+    updateSwimPills(dt, t, R);
+    ctxFx.save();
+    ctxFx.translate(cx, cy);
+    for (const p of swimPills) drawSwimPill(ctxFx, p);
+    ctxFx.restore();
+
     const g = ctxFx.createRadialGradient(cx, cy, R*0.2, cx, cy, R*1.4);
-    g.addColorStop(0, "rgba(255,255,255,0.65)");
+    g.addColorStop(0, "rgba(255,255,255,0.55)");
     g.addColorStop(1, "rgba(255,255,255,0)");
     ctxFx.fillStyle = g;
     ctxFx.fillRect(cx - R*2, cy - R*2, R*4, R*4);
+
     ctxFx.restore();
 
     // outline
@@ -619,16 +1067,7 @@ function animate(){
     ctxFx.stroke();
     ctxFx.restore();
 
-    // inner ring
-    ctxFx.save();
-    ctxFx.beginPath();
-    ctxFx.arc(cx, cy, R*0.74, 0, Math.PI*2);
-    ctxFx.strokeStyle = "rgba(17,24,39,0.18)";
-    ctxFx.lineWidth = 1;
-    ctxFx.stroke();
-    ctxFx.restore();
-
-    // lines from wavy edge (also clipped by .scene overflow hidden)
+    // branch lines
     ctxLn.save();
     ctxLn.lineWidth = 1;
     ctxLn.lineCap = "round";
@@ -684,15 +1123,15 @@ document.getElementById("reload").addEventListener("click", load);
 q.addEventListener("input", applySearch);
 
 window.addEventListener("resize", () => {
+  swimPills = [];
   applySearch();
   animate();
 });
 
 (async () => {
-  const ok = await loadTexture();
+  await loadTexture(); // ok if missing
   await load();
   animate();
-  if (!ok) setStatus(statusEl.textContent + "\n\nTexture not found. Upload image to " + TEXTURE_URL);
 })();
 </script>
 </body>
