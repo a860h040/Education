@@ -16,31 +16,29 @@
       --tipBg:rgba(255,255,255,.85);
       --tipBorder:rgba(17,24,39,.14);
     }
-
     *{box-sizing:border-box}
+
     body{
       margin:0;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       background: var(--bg);
       color: var(--ink);
-      overflow-x:hidden;
+      overflow:hidden;
       min-height:100vh;
     }
 
+    /* top buttons */
     .topbar{
       position:fixed;
-      top:0; left:0; right:0;
-      padding:14px 18px;
+      top:14px; left:14px; right:14px;
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap:12px;
-      z-index:20;
-      background: linear-gradient(to bottom, rgba(255,255,255,.97), rgba(255,255,255,.75), rgba(255,255,255,0));
-      backdrop-filter: blur(8px);
-      border-bottom: 1px solid rgba(17,24,39,.06);
+      z-index:30;
+      pointer-events:none;
     }
-    .brand{display:flex; align-items:center; gap:10px; user-select:none;}
+    .brand{display:flex;align-items:center;gap:10px;user-select:none;pointer-events:auto}
     .brand .dot{
       width:10px;height:10px;border-radius:50%;
       background: var(--ink);
@@ -49,13 +47,12 @@
     }
     .brand h1{
       margin:0;
-      font-size:15px;
-      letter-spacing:.08em;
+      font-size:14px;
+      letter-spacing:.10em;
       text-transform:uppercase;
-      opacity:.9;
+      opacity:.88;
     }
-
-    .actions{display:flex; gap:10px; flex-wrap:wrap}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;pointer-events:auto}
     .btn{
       appearance:none;
       border:1px solid var(--btnBorder);
@@ -67,16 +64,12 @@
       text-decoration:none;
       font-weight:800;
       letter-spacing:.02em;
-      transition: transform .15s ease, background .15s ease, border-color .15s ease, opacity .15s ease;
+      transition: transform .15s ease, background .15s ease, border-color .15s ease;
       display:inline-flex;
       align-items:center;
       gap:8px;
     }
-    .btn:hover{
-      transform: translateY(-1px);
-      background: var(--btnHover);
-      border-color: rgba(17,24,39,.22);
-    }
+    .btn:hover{transform: translateY(-1px);background: var(--btnHover);border-color: rgba(17,24,39,.22)}
     .btn:active{transform: translateY(0px) scale(.99)}
     .btn .miniDot{
       width:7px;height:7px;border-radius:50%;
@@ -85,28 +78,16 @@
       opacity:.9;
     }
 
-    .sceneWrap{
-      min-height:100vh;
-      display:grid;
-      place-items:center;
-      padding:80px 16px 30px;
-    }
-
-    /* ✅ no border */
+    /* fullscreen scene */
     .scene{
-      width:min(980px, 96vw);
-      height:min(720px, 80vh);
-      position:relative;
-      border-radius:28px;
-      overflow:hidden;
-      border:none;
+      position:fixed;
+      inset:0;
       background:
-        radial-gradient(1100px 900px at 50% 45%, rgba(17,24,39,.05), rgba(255,255,255,0) 65%),
-        rgba(255,255,255,1);
-      box-shadow: 0 18px 60px rgba(17,24,39,.10);
+        radial-gradient(1200px 900px at 50% 45%, rgba(17,24,39,.05), rgba(255,255,255,0) 65%),
+        #fff;
+      /* ✅ hard clip everything (canvas + tips + nodes) */
+      overflow:hidden;
     }
-
-    /* super subtle dust */
     .scene:before{
       content:"";
       position:absolute; inset:-20%;
@@ -115,65 +96,6 @@
       opacity:.05;
       transform: rotate(7deg);
       pointer-events:none;
-    }
-
-    .hud{
-      position:absolute;
-      left:18px; bottom:16px;
-      right:18px;
-      display:flex;
-      gap:12px;
-      align-items:flex-end;
-      justify-content:space-between;
-      z-index:10;
-      pointer-events:none;
-    }
-    .status{
-      pointer-events:auto;
-      max-width: 66%;
-      padding:10px 12px;
-      border-radius:16px;
-      background: rgba(255,255,255,.78);
-      color: rgba(17,24,39,.60);
-      font-size:13px;
-      white-space:pre-wrap;
-      line-height:1.35;
-      box-shadow: 0 0 0 1px rgba(17,24,39,.06) inset;
-    }
-
-    .controls{
-      pointer-events:auto;
-      display:flex;
-      gap:10px;
-      align-items:center;
-      justify-content:flex-end;
-      flex-wrap:wrap;
-    }
-    .input{
-      border:1px solid rgba(17,24,39,.14);
-      background: rgba(255,255,255,.75);
-      color: var(--ink);
-      padding:10px 12px;
-      border-radius:999px;
-      outline:none;
-      min-width: 240px;
-    }
-    .input::placeholder{color: rgba(17,24,39,.45)}
-
-    .smallBtn{
-      border:1px solid rgba(17,24,39,.14);
-      background: rgba(255,255,255,.75);
-      color: var(--ink);
-      padding:10px 12px;
-      border-radius:999px;
-      cursor:pointer;
-      font-weight:800;
-      transition: transform .15s ease, background .15s ease, border-color .15s ease;
-    }
-    .smallBtn:hover{
-      transform: translateY(-1px);
-      background: rgba(17,24,39,.04);
-      border-color: rgba(17,24,39,.22);
     }
 
     canvas{position:absolute; inset:0; width:100%; height:100%; display:block;}
@@ -210,13 +132,11 @@
       position:absolute;
       left:50%;
       top:50%;
-      width:0;
-      height:0;
+      width:0;height:0;
       transform: translate(-50%,-50%) rotate(var(--angle)) translateX(var(--r0));
       transform-origin: 0 0;
       pointer-events:auto;
     }
-
     .branch .hit{
       position:absolute;
       left:0;
@@ -226,47 +146,38 @@
       cursor:pointer;
       background: transparent;
     }
-
     .branch .line{
       position:absolute;
-      left:0;
-      top:0;
+      left:0; top:0;
       height:2px;
       width: var(--lenShort);
       background: var(--line);
       border-radius:999px;
       transform-origin:left center;
+      transition: width .22s ease, background .22s ease, box-shadow .22s ease;
       box-shadow: 0 0 12px rgba(17,24,39,.06);
-      transition: width .22s ease, background .22s ease, box-shadow .22s ease, opacity .22s ease;
       opacity:.9;
     }
-
     .branch .node{
       position:absolute;
       left: calc(var(--lenShort) - 11px);
       top: -11px;
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
+      width: 22px;height: 22px;border-radius: 50%;
       background: rgba(255,255,255,.75);
       border:1px solid rgba(17,24,39,.14);
       box-shadow: 0 0 0 1px rgba(17,24,39,.02) inset, 0 0 18px rgba(17,24,39,.06);
       transform: scale(.25);
       opacity: 0;
       transition: transform .22s ease, opacity .22s ease, left .22s ease, background .22s ease, border-color .22s ease;
-      display:grid;
-      place-items:center;
-      overflow:hidden;
+      display:grid;place-items:center;
     }
     .node::after{
       content:"";
-      width: 7px; height: 7px;
-      border-radius:50%;
+      width:7px;height:7px;border-radius:50%;
       background: rgba(17,24,39,.85);
       box-shadow: 0 0 12px rgba(17,24,39,.10);
       opacity:.9;
     }
-
     .branch:hover .line{
       width: var(--len);
       background: var(--lineHot);
@@ -294,7 +205,7 @@
       color: rgba(17,24,39,.85);
       font-size:12px;
       white-space:nowrap;
-      max-width: 360px;
+      max-width: 420px;
       overflow:hidden;
       text-overflow:ellipsis;
       opacity:0;
@@ -306,7 +217,63 @@
       transform: rotate(calc(var(--angle) * -1)) translateY(-2px);
     }
 
-    @media (hover:none) {
+    /* bottom bar */
+    .bottomBar{
+      position:fixed;
+      left:50%;
+      transform: translateX(-50%);
+      bottom:16px;
+      width:min(920px, calc(100vw - 24px));
+      display:flex;
+      gap:10px;
+      align-items:flex-end;
+      justify-content:space-between;
+      z-index:25;
+      pointer-events:none;
+    }
+    .status{
+      pointer-events:auto;
+      flex:1;
+      padding:10px 12px;
+      border-radius:16px;
+      background: rgba(255,255,255,.78);
+      color: rgba(17,24,39,.60);
+      font-size:13px;
+      white-space:pre-wrap;
+      line-height:1.35;
+      box-shadow: 0 0 0 1px rgba(17,24,39,.06) inset;
+      max-height: 110px;
+      overflow:auto;
+    }
+    .controls{pointer-events:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .input{
+      border:1px solid rgba(17,24,39,.14);
+      background: rgba(255,255,255,.75);
+      color: var(--ink);
+      padding:10px 12px;
+      border-radius:999px;
+      outline:none;
+      min-width: 260px;
+    }
+    .smallBtn{
+      border:1px solid rgba(17,24,39,.14);
+      background: rgba(255,255,255,.75);
+      color: var(--ink);
+      padding:10px 12px;
+      border-radius:999px;
+      cursor:pointer;
+      font-weight:800;
+      transition: transform .15s ease, background .15s ease, border-color .15s ease;
+    }
+    .smallBtn:hover{transform: translateY(-1px);background: rgba(17,24,39,.04);border-color: rgba(17,24,39,.22)}
+
+    @media (max-width: 780px){
+      .bottomBar{flex-direction:column; align-items:stretch}
+      .controls{justify-content:space-between}
+      .input{min-width: 0; width:100%}
+    }
+
+    @media (hover:none){
       .branch .line{ width: var(--len); background: var(--lineHot); }
       .branch .node{ left: calc(var(--len) - 11px); transform: scale(1); opacity:1; }
       .branch .tip{ opacity:1; }
@@ -314,6 +281,18 @@
   </style>
 </head>
 <body>
+  <div class="scene" id="scene">
+    <canvas id="fx"></canvas>
+    <canvas id="lines"></canvas>
+
+    <div class="centerLabel" aria-hidden="true">
+      <div class="title">PDF FILES</div>
+      <div class="sub" id="countSub">Loading…</div>
+    </div>
+
+    <div class="branches" id="branches"></div>
+  </div>
+
   <div class="topbar">
     <div class="brand">
       <div class="dot"></div>
@@ -327,46 +306,24 @@
     </div>
   </div>
 
-  <div class="sceneWrap">
-    <div class="scene" id="scene">
-      <canvas id="fx"></canvas>
-      <canvas id="lines"></canvas>
-
-      <div class="centerLabel" aria-hidden="true">
-        <div class="title">Ottawa</div>
-        <div class="sub" id="countSub">Loading…</div>
-      </div>
-
-      <div class="branches" id="branches"></div>
-
-      <div class="hud">
-        <div class="status" id="status">Loading from GitHub…</div>
-        <div class="controls">
-          <input class="input" id="q" placeholder="Search filename..." />
-          <button class="smallBtn" id="reload">Reload</button>
-        </div>
-      </div>
+  <div class="bottomBar">
+    <div class="status" id="status">Loading from GitHub…</div>
+    <div class="controls">
+      <input class="input" id="q" placeholder="Search filename..." />
+      <button class="smallBtn" id="reload">Reload</button>
     </div>
   </div>
 
 <script>
-/* ======================
-   CONFIG
-   ====================== */
 const OWNER  = "a860h040";
 const REPO   = "Education";
 const BRANCH = "main";
 const FOLDER = "pdfs";
 const API = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(FOLDER)}?ref=${encodeURIComponent(BRANCH)}`;
 
-/* ✅ Put your roof/wall image in your repo and set the path here:
-   Example: if you upload the image as /assets/roof.png -> "./assets/roof.png"
-*/
+// upload your texture to the repo and set path here (optional)
 const TEXTURE_URL = "./assets/roof.png";
 
-/* ======================
-   STATE
-   ====================== */
 const scene = document.getElementById("scene");
 const fx = document.getElementById("fx");
 const lines = document.getElementById("lines");
@@ -380,13 +337,9 @@ let shownFiles = [];
 let branchObjs = [];
 let rafId = 0;
 
-// texture pattern
 let texImg = null;
 let texPattern = null;
 
-/* ======================
-   HELPERS
-   ====================== */
 function setStatus(t){ statusEl.textContent = t; }
 function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
 function hashStr(str){
@@ -405,7 +358,6 @@ function resizeCanvas(c){
 }
 function openUrl(url){ window.open(url, "_blank", "noopener,noreferrer"); }
 
-/* ✅ "2025-..._76668a2b_Patient Education.pdf" -> "Patient Education" */
 function displayName(full){
   const name = String(full || "");
   const noExt = name.toLowerCase().endsWith(".pdf") ? name.slice(0, -4) : name;
@@ -414,7 +366,6 @@ function displayName(full){
   return noExt.trim();
 }
 
-/* wavy radius matches the blob outline */
 function wavyRadius(angle, t, R){
   const n =
     Math.sin(angle*3 + t*0.9)*0.18 +
@@ -424,20 +375,15 @@ function wavyRadius(angle, t, R){
   return R * (1 + n*0.35 + spike);
 }
 
-/* Create a smaller tiled pattern so it looks like “wall tiles” */
 function buildTexturePattern(ctx){
   if (!texImg || !texImg.naturalWidth) return null;
-
-  const scale = 0.32; // smaller = more tiles, adjust as you like
+  const scale = 0.32;
   const oc = document.createElement("canvas");
   oc.width = Math.max(64, Math.floor(texImg.naturalWidth * scale));
   oc.height = Math.max(64, Math.floor(texImg.naturalHeight * scale));
   const octx = oc.getContext("2d");
-  octx.imageSmoothingEnabled = true;
   octx.drawImage(texImg, 0, 0, oc.width, oc.height);
-
-  const p = ctx.createPattern(oc, "repeat");
-  return p;
+  return ctx.createPattern(oc, "repeat");
 }
 
 async function loadTexture(){
@@ -450,24 +396,52 @@ async function loadTexture(){
   });
 }
 
-/* ======================
-   BUILD BRANCHES (DOM)
-   ====================== */
+/* ✅ Ensure branches never exceed viewport */
+function computeSafeGeometry(fileCount){
+  const r = scene.getBoundingClientRect();
+  const w = r.width, h = r.height;
+
+  const safePad = 72;          // keep away from edges
+  const bottomHud = 150;       // space for bottom bar
+  const topHud = 80;           // space for top buttons
+  const availW = w - safePad*2;
+  const availH = h - safePad - bottomHud - topHud;
+
+  // center radius
+  const R = Math.min(availW, availH) * 0.26;
+  const r0 = R * 1.05;
+
+  // max line length so nodes/tips don't go out
+  // (tips can add extra, but we clip the whole scene anyway)
+  const maxToEdge = Math.min(availW, availH) * 0.48;
+  const baseLen = clamp(maxToEdge, 220, 420);
+  const jitter = baseLen * 0.18;
+
+  // if many files, shorten lines a bit
+  const crowd = clamp(fileCount / 22, 0, 1);
+  const baseLen2 = baseLen * (1 - crowd*0.18);
+
+  return {
+    R,
+    r0,
+    baseLen: baseLen2,
+    jitter
+  };
+}
+
 function buildBranches(files){
   branchesEl.innerHTML = "";
   branchObjs = [];
 
-  const r = scene.getBoundingClientRect();
-
-  // ✅ BIGGER center blob
-  const R = Math.min(r.width, r.height) * 0.24;    // was 0.18
-  const r0 = R * 1.05;                              // start from edge
+  const geom = computeSafeGeometry(files.length);
+  const R = geom.R;
+  const r0 = geom.r0;
 
   const MAX = 22;
   const list = files.slice(0, MAX);
 
-  const baseLen = Math.min(r.width, r.height) * 0.34;
-  const jitter = Math.min(r.width, r.height) * 0.08;
+  const baseLen = geom.baseLen;
+  const jitter  = geom.jitter;
   const shortFactor = 0.52;
   const minAngleGap = 12;
 
@@ -488,7 +462,7 @@ function buildBranches(files){
     }
     usedAngles.push(ang);
 
-    const len = clamp(baseLen + (seed - 0.5) * 2 * jitter, baseLen*0.8, baseLen*1.15);
+    const len = clamp(baseLen + (seed - 0.5) * 2 * jitter, baseLen*0.78, baseLen*1.08);
     const lenShort = len * shortFactor;
 
     const nice = displayName(f.name);
@@ -508,7 +482,6 @@ function buildBranches(files){
 
     hitEl.addEventListener("click", () => openUrl(url));
     nodeEl.addEventListener("click", () => openUrl(url));
-    tip.addEventListener("click",   () => openUrl(url));
     hitEl.addEventListener("touchstart", (e)=>{ e.preventDefault(); openUrl(url); }, {passive:false});
 
     branch.appendChild(lineEl);
@@ -517,20 +490,12 @@ function buildBranches(files){
     branch.appendChild(tip);
     branchesEl.appendChild(branch);
 
-    branchObjs.push({
-      angleRad: ang * Math.PI/180,
-      len, lenShort,
-      seed,
-      el: branch
-    });
+    branchObjs.push({ angleRad: ang * Math.PI/180, len, lenShort, seed, el: branch });
   });
 
   countSub.textContent = files.length ? `${files.length} file(s)` : "No PDFs found";
 }
 
-/* ======================
-   LOAD PDFs
-   ====================== */
 async function load(){
   setStatus("Loading from GitHub…");
   countSub.textContent = "Loading…";
@@ -570,18 +535,12 @@ function applySearch(){
   buildBranches(shownFiles);
 }
 
-/* ======================
-   ANIMATION
-   ✅ center uses “roof/wall” texture + thicker “wall” ring
-   ====================== */
 function animate(){
   const s1 = resizeCanvas(fx);
   resizeCanvas(lines);
 
   const ctxFx = fx.getContext("2d");
   const ctxLn = lines.getContext("2d");
-
-  // build pattern after canvas is ready
   texPattern = buildTexturePattern(ctxFx);
 
   const w = s1.w, h = s1.h;
@@ -591,15 +550,14 @@ function animate(){
 
   function frame(now){
     const t = (now - t0) / 1000;
-
     ctxFx.clearRect(0,0,w,h);
     ctxLn.clearRect(0,0,w,h);
 
-    // ✅ BIGGER center blob
-    const R = Math.min(w,h) * 0.24;     // was 0.18
+    // center size derived from safe geometry
+    const geom = computeSafeGeometry(shownFiles.length || allFiles.length || 0);
+    const R = geom.R;
     const pts = 180;
 
-    // ---------- center blob path ----------
     function blobPath(ctx){
       ctx.beginPath();
       for (let i=0; i<=pts; i++){
@@ -612,7 +570,7 @@ function animate(){
       ctx.closePath();
     }
 
-    // soft outer shadow glow (no border)
+    // glow
     ctxFx.save();
     blobPath(ctxFx);
     ctxFx.shadowColor = "rgba(17,24,39,0.12)";
@@ -621,23 +579,22 @@ function animate(){
     ctxFx.fill();
     ctxFx.restore();
 
-    // ---------- textured “wall” ring ----------
+    // thick textured wall ring
     ctxFx.save();
     blobPath(ctxFx);
     ctxFx.lineJoin = "round";
     ctxFx.lineCap = "round";
-    ctxFx.lineWidth = R * 0.24; // “expand the walls”
+    ctxFx.lineWidth = R * 0.24;
     ctxFx.strokeStyle = texPattern || "rgba(17,24,39,0.06)";
     ctxFx.shadowColor = "rgba(17,24,39,0.08)";
     ctxFx.shadowBlur = 18;
     ctxFx.stroke();
     ctxFx.restore();
 
-    // ---------- inner fill (light texture wash) ----------
+    // inner fill
     ctxFx.save();
     blobPath(ctxFx);
     ctxFx.clip();
-    // subtle texture fill
     if (texPattern){
       ctxFx.globalAlpha = 0.55;
       ctxFx.fillStyle = texPattern;
@@ -647,7 +604,6 @@ function animate(){
       ctxFx.fillStyle = "rgba(17,24,39,0.03)";
       ctxFx.fillRect(cx - R*2.2, cy - R*2.2, R*4.4, R*4.4);
     }
-    // brighten center slightly
     const g = ctxFx.createRadialGradient(cx, cy, R*0.2, cx, cy, R*1.4);
     g.addColorStop(0, "rgba(255,255,255,0.65)");
     g.addColorStop(1, "rgba(255,255,255,0)");
@@ -655,16 +611,15 @@ function animate(){
     ctxFx.fillRect(cx - R*2, cy - R*2, R*4, R*4);
     ctxFx.restore();
 
-    // ---------- crisp outline ----------
+    // outline
     ctxFx.save();
     blobPath(ctxFx);
     ctxFx.strokeStyle = "rgba(17,24,39,0.78)";
     ctxFx.lineWidth = 1.25;
-    ctxFx.shadowBlur = 0;
     ctxFx.stroke();
     ctxFx.restore();
 
-    // ---------- inner ring ----------
+    // inner ring
     ctxFx.save();
     ctxFx.beginPath();
     ctxFx.arc(cx, cy, R*0.74, 0, Math.PI*2);
@@ -673,7 +628,7 @@ function animate(){
     ctxFx.stroke();
     ctxFx.restore();
 
-    // ---------- animated branch lines (start from wavy edge) ----------
+    // lines from wavy edge (also clipped by .scene overflow hidden)
     ctxLn.save();
     ctxLn.lineWidth = 1;
     ctxLn.lineCap = "round";
@@ -725,9 +680,6 @@ function animate(){
   rafId = requestAnimationFrame(frame);
 }
 
-/* ======================
-   INIT
-   ====================== */
 document.getElementById("reload").addEventListener("click", load);
 q.addEventListener("input", applySearch);
 
@@ -740,7 +692,7 @@ window.addEventListener("resize", () => {
   const ok = await loadTexture();
   await load();
   animate();
-  if (!ok) setStatus(statusEl.textContent + "\n\nTexture not found. Upload the image to " + TEXTURE_URL);
+  if (!ok) setStatus(statusEl.textContent + "\n\nTexture not found. Upload image to " + TEXTURE_URL);
 })();
 </script>
 </body>
