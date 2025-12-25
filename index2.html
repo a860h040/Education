@@ -12,22 +12,21 @@
 
   <style>
     :root{
-      --bg:#0b1020;
-      --text:#e9ecff;
-      --muted:#aeb7e6;
-      --accent:#7aa2ff;
-      --danger:#ff6b6b;
-      --ok:#42d392;
-      --spacer:#42d392;
-      --border:rgba(255,255,255,.12);
-      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --bg:#ffffff;
+      --text:#0b1020;
+      --muted:#5c647c;
+      --accent:#1f5cff;
+      --danger:#d83434;
+      --ok:#0f8a56;
+      --border:rgba(0,0,0,.12);
+      --shadow: 0 10px 30px rgba(0,0,0,.10);
       --radius: 14px;
     }
     *{box-sizing:border-box}
     body{
       margin:0;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-      background: radial-gradient(1100px 650px at 20% 0%, #1a2a5a 0%, var(--bg) 45%, #070b16 100%);
+      background: var(--bg);
       color: var(--text);
     }
     header{
@@ -38,7 +37,7 @@
       justify-content:space-between;
       flex-wrap:wrap;
       border-bottom:1px solid var(--border);
-      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0));
+      background:#ffffff;
     }
     header h1{font-size:16px;margin:0;letter-spacing:.2px;}
     header p{
@@ -53,7 +52,7 @@
     @media (max-width: 980px){ .wrap{grid-template-columns:1fr} }
 
     .card{
-      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      background:#ffffff;
       border:1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
@@ -61,7 +60,7 @@
     }
     .card .hd{
       padding:12px 12px 10px;
-      background: rgba(0,0,0,.12);
+      background: #f6f7fb;
       border-bottom: 1px solid var(--border);
       display:flex;
       align-items:center;
@@ -76,15 +75,15 @@
       width:100%;
       padding:10px;
       border-radius:12px;
-      border:1px dashed rgba(255,255,255,.25);
-      background: rgba(0,0,0,.18);
+      border:1px dashed rgba(0,0,0,.25);
+      background: #ffffff;
       color: var(--text);
     }
 
     button, input[type="range"]{ font: inherit; }
     button{
       border:1px solid var(--border);
-      background: rgba(0,0,0,.20);
+      background: #ffffff;
       color: var(--text);
       padding:10px 12px;
       border-radius:12px;
@@ -92,27 +91,30 @@
       transition: transform .04s ease, background .15s ease, border-color .15s ease;
       user-select:none;
     }
-    button:hover{ background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.22); }
+    button:hover{ background: #f3f5fb; border-color: rgba(0,0,0,.18); }
     button:active{ transform: translateY(1px); }
     button.primary{
-      background: linear-gradient(180deg, rgba(122,162,255,.35), rgba(122,162,255,.18));
-      border-color: rgba(122,162,255,.55);
+      background: #e9efff;
+      border-color: rgba(31,92,255,.40);
+      color:#0b1a4a;
     }
     button.ok{
-      background: linear-gradient(180deg, rgba(66,211,146,.28), rgba(66,211,146,.14));
-      border-color: rgba(66,211,146,.55);
+      background: #e7fff2;
+      border-color: rgba(15,138,86,.45);
+      color:#063b25;
     }
     button.danger{
-      background: linear-gradient(180deg, rgba(255,107,107,.32), rgba(255,107,107,.16));
-      border-color: rgba(255,107,107,.55);
+      background: #ffecec;
+      border-color: rgba(216,52,52,.45);
+      color:#4a0b0b;
     }
-    button[disabled]{ opacity:.45; cursor:not-allowed; transform:none !important; }
+    button[disabled]{ opacity:.5; cursor:not-allowed; transform:none !important; }
 
     .hint{
       font-size:12px;
       color: var(--muted);
       line-height:1.35;
-      background: rgba(0,0,0,.16);
+      background: #f7f8fc;
       border:1px solid var(--border);
       border-radius: 12px;
       padding:10px 10px;
@@ -130,7 +132,7 @@
       padding:8px 10px;
       border-radius:12px;
       border:1px solid var(--border);
-      background: rgba(0,0,0,.14);
+      background: #ffffff;
       font-size:12px;
       color: var(--muted);
     }
@@ -176,7 +178,7 @@
       overflow:auto;
       border:1px solid var(--border);
       border-radius: 12px;
-      background: rgba(0,0,0,.14);
+      background: #ffffff;
     }
     .listItem{
       padding:10px 10px;
@@ -193,8 +195,7 @@
     /* Modal preview */
     .modalBackdrop{
       position:fixed; inset:0;
-      background: rgba(0,0,0,.55);
-      backdrop-filter: blur(6px);
+      background: rgba(0,0,0,.35);
       display:none;
       align-items:center;
       justify-content:center;
@@ -205,9 +206,9 @@
       width:min(1100px, 96vw);
       height:min(88vh, 920px);
       border-radius: 18px;
-      border:1px solid rgba(255,255,255,.14);
-      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
-      box-shadow: 0 18px 60px rgba(0,0,0,.55);
+      border:1px solid var(--border);
+      background: #ffffff;
+      box-shadow: 0 18px 60px rgba(0,0,0,.25);
       overflow:hidden;
       display:flex;
       flex-direction:column;
@@ -218,15 +219,15 @@
       align-items:center;
       justify-content:space-between;
       gap:10px;
-      border-bottom:1px solid rgba(255,255,255,.12);
-      background: rgba(0,0,0,.22);
+      border-bottom:1px solid var(--border);
+      background: #f6f7fb;
     }
     .modalHd b{font-size:13px;}
     .modalBd{ padding:12px; height:100%; overflow:hidden; }
     .previewWrap{
       height:100%;
       border-radius:14px;
-      border:1px solid rgba(255,255,255,.12);
+      border:1px solid var(--border);
       background:#f3f4f6;
       overflow:auto;
       padding:10px;
@@ -235,9 +236,9 @@
     .previewPage{display:flex; flex-direction:column; gap:6px; align-items:center;}
     .previewPage .lbl{
       font-size:12px;
-      color:rgba(255,255,255,.75);
-      background: rgba(0,0,0,.18);
-      border:1px solid rgba(255,255,255,.12);
+      color:#2b2f3d;
+      background: #ffffff;
+      border:1px solid var(--border);
       padding:6px 10px;
       border-radius: 999px;
     }
@@ -247,8 +248,8 @@
       display:flex;
       justify-content:space-between;
       gap:10px;
-      border-top:1px solid rgba(255,255,255,.12);
-      background: rgba(0,0,0,.18);
+      border-top:1px solid var(--border);
+      background: #f6f7fb;
     }
     .progress{ font-size:12px; color: var(--muted); display:flex; align-items:center; gap:8px; }
   </style>
@@ -398,7 +399,6 @@
   </div>
 </div>
 
-<!-- Preview Modal -->
 <div class="modalBackdrop" id="previewModal">
   <div class="modal" role="dialog" aria-modal="true" aria-label="Preview Edited PDF">
     <div class="modalHd">
@@ -428,7 +428,6 @@
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.7.570/pdf.worker.min.js';
   const { jsPDF } = window.jspdf;
 
-  // UI
   const elFile = document.getElementById('file');
   const canvasWrap = document.getElementById('canvasWrap');
   const elStage = document.getElementById('stage');
@@ -449,9 +448,9 @@
   const zoomLabel = document.getElementById('zoomLabel');
   const pageStat = document.getElementById('pageStat');
 
-  const btnModeDraw = document.getElementById('modeDraw');       // cut
-  const btnModeSpacer = document.getElementById('modeSpacer');   // spacer
-  const btnModeDelete = document.getElementById('modeDelete');   // click delete
+  const btnModeDraw = document.getElementById('modeDraw');
+  const btnModeSpacer = document.getElementById('modeSpacer');
+  const btnModeDelete = document.getElementById('modeDelete');
   const btnClearCuts = document.getElementById('clearCuts');
   const btnClearSpacers = document.getElementById('clearSpacers');
   const btnClearAll = document.getElementById('clearAll');
@@ -476,13 +475,11 @@
   const cutList = document.getElementById('cutList');
   const spacerList = document.getElementById('spacerList');
 
-  // Blank page controls
   const addBlankBefore = document.getElementById('addBlankBefore');
   const addBlankAfter = document.getElementById('addBlankAfter');
   const removeBlankBefore = document.getElementById('removeBlankBefore');
   const removeBlankAfter = document.getElementById('removeBlankAfter');
 
-  // Preview modal
   const previewModal = document.getElementById('previewModal');
   const previewWrap = document.getElementById('previewWrap');
   const previewStage = document.getElementById('previewStage');
@@ -490,27 +487,21 @@
   const previewProgress = document.getElementById('previewProgress');
   const previewDownload = document.getElementById('previewDownload');
 
-  // State
   let pdfDoc = null;
   let pageNum = 1;
   let zoom = 1.0;
   let viewMode = 'width';
 
-  // Cuts remove content and pull text up (red)
-  const cutsByPage = new Map();      // page -> [{yPct,hPct}]
-  // Spacers add blank space but do NOT delete text (green)
-  const spacersByPage = new Map();   // page -> [{yPct,hPct}]
+  const cutsByPage = new Map();
+  const spacersByPage = new Map();
+  const blanksBefore = new Map();
+  const blanksAfter  = new Map();
 
-  // Blank whole pages insertion
-  const blanksBefore = new Map(); // page -> count
-  const blanksAfter  = new Map(); // page -> count
-
-  // Modes: 'cut' | 'spacer' | 'clickDelete'
   let mode = 'cut';
   let isDragging = false;
   let dragStart = null;
-  let liveBand = null; // {y,h}
-  let lastOutputPages = null; // cache {pages,w,h,orientation}
+  let liveBand = null;
+  let lastOutputPages = null;
 
   function invalidateOutputCache(){ lastOutputPages = null; }
 
@@ -620,7 +611,6 @@
     removeBlankBefore.disabled = getBlankCount(blanksBefore, pageNum) === 0;
     removeBlankAfter.disabled = getBlankCount(blanksAfter, pageNum) === 0;
 
-    // Cuts list
     const cuts = pageCuts();
     if (!cuts.length){
       cutList.innerHTML = `<div class="listItem"><span>No cuts</span><span class="mono">—</span></div>`;
@@ -641,7 +631,6 @@
       });
     }
 
-    // Spacers list
     const sp = pageSpacers();
     if (!sp.length){
       spacerList.innerHTML = `<div class="listItem"><span>No spacers</span><span class="mono">—</span></div>`;
@@ -666,7 +655,6 @@
   function drawOverlay(){
     octx.clearRect(0, 0, overlay.width, overlay.height);
 
-    // Header/footer blank preview (blue)
     if (blankHF.checked){
       const h = overlay.height;
       const topH = Math.round((Number(headerPct.value)/100) * h);
@@ -674,43 +662,40 @@
       octx.save();
       octx.lineWidth = 2;
       octx.setLineDash([10,8]);
-      octx.strokeStyle = 'rgba(122,162,255,0.85)';
-      octx.fillStyle = 'rgba(122,162,255,0.10)';
+      octx.strokeStyle = 'rgba(31,92,255,0.85)';
+      octx.fillStyle = 'rgba(31,92,255,0.10)';
       if (topH>0){ octx.fillRect(0,0,overlay.width,topH); octx.strokeRect(0,0,overlay.width,topH); }
       if (botH>0){ octx.fillRect(0,h-botH,overlay.width,botH); octx.strokeRect(0,h-botH,overlay.width,botH); }
       octx.restore();
     }
 
-    // Spacers (green)
     for (const s of pageSpacers()){
       const px = pctBandToPx(s);
       octx.save();
       octx.lineWidth = 2;
       octx.setLineDash([6,6]);
-      octx.strokeStyle = 'rgba(66,211,146,0.95)';
-      octx.fillStyle = 'rgba(66,211,146,0.12)';
+      octx.strokeStyle = 'rgba(15,138,86,0.95)';
+      octx.fillStyle = 'rgba(15,138,86,0.12)';
       octx.fillRect(0, px.y, overlay.width, px.h);
       octx.strokeRect(0, px.y, overlay.width, px.h);
       octx.restore();
     }
 
-    // Cuts (red)
     for (const c of pageCuts()){
       const px = pctBandToPx(c);
       octx.save();
       octx.lineWidth = 2;
       octx.setLineDash([]);
-      octx.strokeStyle = 'rgba(255,107,107,0.95)';
-      octx.fillStyle = 'rgba(255,107,107,0.15)';
+      octx.strokeStyle = 'rgba(216,52,52,0.95)';
+      octx.fillStyle = 'rgba(216,52,52,0.15)';
       octx.fillRect(0, px.y, overlay.width, px.h);
       octx.strokeRect(0, px.y, overlay.width, px.h);
       octx.restore();
     }
 
-    // Live band (blue) while dragging (mode-dependent)
     if (liveBand){
-      const color = (mode === 'spacer') ? 'rgba(66,211,146,0.95)' : 'rgba(122,162,255,0.95)';
-      const fill  = (mode === 'spacer') ? 'rgba(66,211,146,0.12)' : 'rgba(122,162,255,0.12)';
+      const color = (mode === 'spacer') ? 'rgba(15,138,86,0.95)' : 'rgba(31,92,255,0.95)';
+      const fill  = (mode === 'spacer') ? 'rgba(15,138,86,0.12)' : 'rgba(31,92,255,0.12)';
       octx.save();
       octx.lineWidth = 2;
       octx.setLineDash([8,6]);
@@ -782,7 +767,6 @@
     await renderPage();
   }
 
-  // --- overlay interaction ---
   overlay.addEventListener('mousedown', (evt) => {
     if (!pdfDoc) return;
     const pos = getMousePos(evt);
@@ -795,7 +779,6 @@
       return;
     }
 
-    // clickDelete: remove cut/spacer that contains click (topmost preference: cut, then spacer)
     const y = pos.y;
     const cuts = pageCuts();
     for (let i = cuts.length - 1; i >= 0; i--){
@@ -848,74 +831,32 @@
     drawOverlay();
   });
 
-  // --- modes ---
   btnModeDraw.onclick = () => setMode('cut');
   btnModeSpacer.onclick = () => setMode('spacer');
   btnModeDelete.onclick = () => setMode('clickDelete');
 
-  // --- prev/next bound ONCE (no skipping) ---
   btnPrev.onclick = async () => { if (!pdfDoc || pageNum<=1) return; pageNum -= 1; await renderPage(); };
   btnNext.onclick = async () => { if (!pdfDoc || pageNum>=pdfDoc.numPages) return; pageNum += 1; await renderPage(); };
 
-  // --- zoom ---
   btnZoomIn.onclick = async () => { if(!pdfDoc) return; viewMode='manual'; zoom=Math.min(3, zoom+0.15); await renderPage(); };
   btnZoomOut.onclick = async () => { if(!pdfDoc) return; viewMode='manual'; zoom=Math.max(0.5, zoom-0.15); await renderPage(); };
   btnFitWidth.onclick = async () => { if(!pdfDoc) return; viewMode='width'; await renderPage(); };
   btnFitPage.onclick  = async () => { if(!pdfDoc) return; viewMode='page'; await renderPage(); };
   btnActualSize.onclick = async () => { if(!pdfDoc) return; viewMode='manual'; zoom=1.0; await renderPage(); };
 
-  // --- clear buttons ---
-  btnClearCuts.onclick = () => {
-    if (!pdfDoc) return;
-    cutsByPage.set(pageNum, []);
-    invalidateOutputCache();
-    drawOverlay();
-  };
-  btnClearSpacers.onclick = () => {
-    if (!pdfDoc) return;
-    spacersByPage.set(pageNum, []);
-    invalidateOutputCache();
-    drawOverlay();
-  };
+  btnClearCuts.onclick = () => { if (!pdfDoc) return; cutsByPage.set(pageNum, []); invalidateOutputCache(); drawOverlay(); };
+  btnClearSpacers.onclick = () => { if (!pdfDoc) return; spacersByPage.set(pageNum, []); invalidateOutputCache(); drawOverlay(); };
   btnClearAll.onclick = () => {
     if (!pdfDoc) return;
-    cutsByPage.clear();
-    spacersByPage.clear();
-    blanksBefore.clear();
-    blanksAfter.clear();
-    invalidateOutputCache();
-    drawOverlay();
+    cutsByPage.clear(); spacersByPage.clear(); blanksBefore.clear(); blanksAfter.clear();
+    invalidateOutputCache(); drawOverlay();
   };
 
-  // --- blank whole pages ---
-  addBlankBefore.onclick = () => {
-    if (!pdfDoc) return;
-    setBlankCount(blanksBefore, pageNum, getBlankCount(blanksBefore, pageNum) + 1);
-    invalidateOutputCache();
-    drawOverlay();
-  };
-  addBlankAfter.onclick = () => {
-    if (!pdfDoc) return;
-    setBlankCount(blanksAfter, pageNum, getBlankCount(blanksAfter, pageNum) + 1);
-    invalidateOutputCache();
-    drawOverlay();
-  };
-  removeBlankBefore.onclick = () => {
-    if (!pdfDoc) return;
-    const cur = getBlankCount(blanksBefore, pageNum);
-    if (cur>0) setBlankCount(blanksBefore, pageNum, cur-1);
-    invalidateOutputCache();
-    drawOverlay();
-  };
-  removeBlankAfter.onclick = () => {
-    if (!pdfDoc) return;
-    const cur = getBlankCount(blanksAfter, pageNum);
-    if (cur>0) setBlankCount(blanksAfter, pageNum, cur-1);
-    invalidateOutputCache();
-    drawOverlay();
-  };
+  addBlankBefore.onclick = () => { if (!pdfDoc) return; setBlankCount(blanksBefore, pageNum, getBlankCount(blanksBefore, pageNum) + 1); invalidateOutputCache(); drawOverlay(); };
+  addBlankAfter.onclick  = () => { if (!pdfDoc) return; setBlankCount(blanksAfter,  pageNum, getBlankCount(blanksAfter,  pageNum) + 1); invalidateOutputCache(); drawOverlay(); };
+  removeBlankBefore.onclick = () => { if (!pdfDoc) return; const cur=getBlankCount(blanksBefore,pageNum); if(cur>0) setBlankCount(blanksBefore,pageNum,cur-1); invalidateOutputCache(); drawOverlay(); };
+  removeBlankAfter.onclick  = () => { if (!pdfDoc) return; const cur=getBlankCount(blanksAfter,pageNum);  if(cur>0) setBlankCount(blanksAfter,pageNum,cur-1);  invalidateOutputCache(); drawOverlay(); };
 
-  // --- settings ---
   exportScale.addEventListener('input', () => { exportScaleLabel.textContent = `${Number(exportScale.value).toFixed(2)}×`; invalidateOutputCache(); });
   blankHF.addEventListener('change', () => { invalidateOutputCache(); drawOverlay(); });
   headerPct.addEventListener('input', () => { updateHFLabels(); invalidateOutputCache(); drawOverlay(); });
@@ -924,7 +865,6 @@
 
   window.addEventListener('resize', async () => { if(!pdfDoc) return; if(viewMode==='width'||viewMode==='page') await renderPage(); });
 
-  // ---- SMART BREAK ----
   function findSmartBreakHeight(srcCtx, targetW, startY, maxH){
     const boundaryY = startY + maxH;
     const minKeep = 90;
@@ -999,7 +939,6 @@
     return maxH;
   }
 
-  // ---- GENERATE OUTPUT PAGES (cuts + spacers + blank pages) ----
   async function generateEditedPages(){
     const exp = Number(exportScale.value) || 2.5;
 
@@ -1046,14 +985,13 @@
       outCtx.drawImage(srcCanvas, 0, srcY, targetW, takeH, 0, bodyTop + outBodyY, targetW, takeH);
     }
 
-    // Consume blank vertical space (spacer) in the output stream.
     function consumeBlank(blankH){
       let remaining = blankH;
       while (remaining > 0){
         const space = bodyH - outBodyY;
         if (space <= 0){ pushCurrentPage(); continue; }
         if (remaining <= space){
-          outBodyY += remaining; // background already white
+          outBodyY += remaining;
           remaining = 0;
         } else {
           outBodyY += space;
@@ -1063,18 +1001,14 @@
       }
     }
 
-    // Insert blank whole pages before/after certain original pages
     function insertBlankPages(count){
       if (count <= 0) return;
       if (outBodyY > 0) pushCurrentPage();
       for (let i=0;i<count;i++) pushBlankWholePage();
     }
 
-    // Helper: check if a y falls inside any deleted range (for spacers)
     function isInDeleted(y, deleted){
-      for (const r of deleted){
-        if (y >= r.y1 && y < r.y2) return true;
-      }
+      for (const r of deleted){ if (y >= r.y1 && y < r.y2) return true; }
       return false;
     }
 
@@ -1093,7 +1027,6 @@
       srcCtx.fillRect(0,0,srcCan.width,srcCan.height);
       await page.render({ canvasContext: srcCtx, viewport: vp }).promise;
 
-      // normalize size to target
       let src = srcCan;
       if (srcCan.width !== targetW || srcCan.height !== targetH){
         const scaled = document.createElement('canvas');
@@ -1107,7 +1040,6 @@
       }
       const normCtx = src.getContext('2d');
 
-      // Deleted ranges (header/footer blank + cuts)
       const del = [];
       if (blankHF.checked){
         if (headerPx > 0) del.push({ y1: 0, y2: headerPx });
@@ -1120,7 +1052,6 @@
       }
       const deleted = mergeRanges(del);
 
-      // Kept segments from source (these are streamed to output)
       const kept = [];
       let cursor = 0;
       for (const r of deleted){
@@ -1129,7 +1060,6 @@
       }
       if (cursor < targetH) kept.push({ y1: cursor, y2: targetH });
 
-      // Spacers as "events" (insert blank in output stream at y1)
       const spacers = (spacersByPage.get(p) || [])
         .map(s => ({
           y1: Math.max(0, Math.floor(s.yPct * targetH)),
@@ -1139,20 +1069,17 @@
         .filter(s => !isInDeleted(s.y1, deleted))
         .sort((a,b)=>a.y1-b.y1);
 
-      // Process kept segments, but inject spacer blanks at the right source Y positions
       let spIdx = 0;
 
       for (const seg of kept){
         let segY = seg.y1;
         let segEnd = seg.y2;
 
-        while (spIdx < spacers.length && spacers[spIdx].y1 < segY) spIdx++; // safety
+        while (spIdx < spacers.length && spacers[spIdx].y1 < segY) spIdx++;
 
-        // walk through spacers that start inside this kept segment
         while (spIdx < spacers.length && spacers[spIdx].y1 > segY && spacers[spIdx].y1 < segEnd){
           const sp = spacers[spIdx];
 
-          // 1) draw source from segY up to spacer start
           let partY = segY;
           let partRemaining = sp.y1 - segY;
 
@@ -1178,15 +1105,11 @@
             }
           }
 
-          // 2) consume spacer blank space (does not consume source)
           consumeBlank(sp.h);
-
-          // 3) continue drawing from spacer start
           segY = sp.y1;
           spIdx++;
         }
 
-        // draw remaining part of this kept segment (segY -> segEnd)
         let segRemaining = segEnd - segY;
         while (segRemaining > 0){
           const bodySpace = bodyH - outBodyY;
@@ -1222,7 +1145,6 @@
     return { pages: pageImages, w: targetW, h: targetH, orientation };
   }
 
-  // ---- preview modal ----
   function openPreview(){ previewModal.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
   function closePreviewModal(){ previewModal.style.display = 'none'; document.body.style.overflow = ''; }
   closePreview.onclick = closePreviewModal;
@@ -1285,7 +1207,6 @@
     }
   };
 
-  // Download ONLY via preview
   previewDownload.onclick = async () => {
     if (!pdfDoc) return;
     previewDownload.disabled = true;
@@ -1313,7 +1234,6 @@
     }
   };
 
-  // ---- file input ----
   elFile.onchange = async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
@@ -1337,7 +1257,6 @@
     }
   };
 
-  // settings init
   exportScaleLabel.textContent = `${Number(exportScale.value).toFixed(2)}×`;
   updateHFLabels();
   setMode('cut');
