@@ -10,7 +10,7 @@
     .row{display:flex;gap:12px;flex-wrap:wrap}
     .card{border:1px solid #ddd;border-radius:12px;padding:14px;margin:12px 0}
     label{display:block;font-size:13px;color:#333;margin-bottom:4px}
-    input,button,select{font:inherit;padding:10px;border:1px solid #ccc;border-radius:10px}
+    input,button{font:inherit;padding:10px;border:1px solid #ccc;border-radius:10px}
     input[type="file"]{padding:8px}
     button{cursor:pointer}
     button.primary{border:none;background:#111;color:#fff}
@@ -24,40 +24,29 @@
     .muted{color:#666;font-size:13px}
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
     .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .repoLine{font-size:13px;color:#444}
+    .repoLine strong{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
   </style>
 </head>
 <body>
   <h1>GitHub PDF Vault</h1>
   <div class="muted">
-    Upload PDFs into a GitHub repo folder, then list/search and download later.
+    Upload PDFs into your GitHub repo folder, then list/search and download later.
   </div>
 
   <div class="card">
-    <h3 style="margin:0 0 10px;">Repository settings</h3>
-    <div class="row">
-      <div style="flex:1;min-width:220px;">
-        <label>Owner (user or org)</label>
-        <input id="owner" placeholder="e.g., a860h040" />
-      </div>
-      <div style="flex:1;min-width:220px;">
-        <label>Repo</label>
-        <input id="repo" placeholder="e.g., pdf-vault" />
-      </div>
-      <div style="width:160px;">
-        <label>Branch</label>
-        <input id="branch" value="main" />
-      </div>
-      <div style="width:200px;">
-        <label>Folder path</label>
-        <input id="folder" value="pdfs" />
-      </div>
+    <h3 style="margin:0 0 10px;">Settings</h3>
+
+    <div class="repoLine">
+      Repository: <strong id="repoLabel"></strong>
+      <span class="muted">· folder:</span> <strong id="folderLabel"></strong>
     </div>
 
     <div class="row" style="margin-top:12px;">
       <div style="flex:1;min-width:320px;">
         <label>GitHub Token (required for upload)</label>
-        <input id="token" type="password" placeholder="Fine-grained PAT (Contents: RW)" />
-        <small>Tip: run this file locally or on a trusted site; don’t hardcode tokens.</small>
+        <input id="token" type="password" placeholder="Fine-grained PAT (Contents: Read & Write)" />
+        <small>Don’t hardcode tokens into GitHub Pages. Paste it here when you need to upload.</small>
       </div>
     </div>
   </div>
@@ -68,7 +57,6 @@
       <div style="flex:1;min-width:320px;">
         <label>Select PDF</label>
         <input id="file" type="file" accept="application/pdf" />
-        <small>GitHub isn’t ideal for huge files. Keep PDFs reasonably sized.</small>
       </div>
       <div style="align-self:end;">
         <button class="primary" id="uploadBtn">Upload to GitHub</button>
@@ -95,7 +83,7 @@
           <tr>
             <th>File</th>
             <th>Size</th>
-            <th>Links</th>
+            <th>Raw link</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -113,37 +101,37 @@
 
 <script>
 (() => {
-  const $ = (id) => document.getElementById(id);
+  // ✅ Prefilled repo info (no user input needed)
+  const DEFAULT_OWNER  = "a860h040";
+  const DEFAULT_REPO   = "Education";
+  const DEFAULT_BRANCH = "main";
+  const DEFAULT_FOLDER = "pdfs";
 
-  function setStatus(msg) {
-    $("status").textContent = msg;
-  }
+  const $ = (id) => document.getElementById(id);
+  let lastFiles = [];
+
+  $("repoLabel").textContent = `${DEFAULT_OWNER}/${DEFAULT_REPO}@${DEFAULT_BRANCH}`;
+  $("folderLabel").textContent = DEFAULT_FOLDER;
+
+  function setStatus(msg) { $("status").textContent = msg; }
 
   function cfg() {
-    const owner = $("owner").value.trim();
-    const repo = $("repo").value.trim();
-    const branch = $("branch").value.trim() || "main";
-    let folder = $("folder").value.trim() || "pdfs";
-    folder = folder.replace(/^\/+|\/+$/g, ""); // no leading/trailing slash
     const token = $("token").value.trim();
-    return { owner, repo, branch, folder, token };
-  }
-
-  function requireRepoFields() {
-    const { owner, repo } = cfg();
-    if (!owner || !repo) {
-      throw new Error("Please fill Owner and Repo.");
-    }
+    return {
+      owner: DEFAULT_OWNER,
+      repo: DEFAULT_REPO,
+      branch: DEFAULT_BRANCH,
+      folder: DEFAULT_FOLDER,
+      token
+    };
   }
 
   function encodePath(path) {
-    // encode each segment but keep slashes
     return path.split("/").map(encodeURIComponent).join("/");
   }
 
   async function fileToBase64(file) {
     const buf = await file.arrayBuffer();
-    // Convert ArrayBuffer to base64 safely
     let binary = "";
     const bytes = new Uint8Array(buf);
     const chunkSize = 0x8000;
@@ -175,18 +163,16 @@
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodePath(path)}?ref=${encodeURIComponent(branch)}`;
     try {
       const data = await ghFetch(url, { token });
-      // if it's a file object, it has sha
       if (data && data.sha && data.type === "file") return data.sha;
       return null;
     } catch (e) {
-      // 404 -> doesn't exist
       if (String(e.message).includes("(404)")) return null;
       return null;
     }
   }
 
   function niceBytes(n) {
-    if (n === 0) return "0 B";
+    if (!n) return "0 B";
     const k = 1024;
     const sizes = ["B","KB","MB","GB"];
     const i = Math.floor(Math.log(n) / Math.log(k));
@@ -194,12 +180,19 @@
   }
 
   function sanitizeFilename(name) {
-    // keep simple, remove weird chars
     return name.replace(/[^\w.\-() ]+/g, "_").replace(/\s+/g, " ").trim();
   }
 
+  function escapeHtml(s) {
+    return String(s || "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
   async function uploadPDF() {
-    requireRepoFields();
     const { owner, repo, branch, folder, token } = cfg();
     if (!token) throw new Error("Token is required for upload.");
 
@@ -220,36 +213,23 @@
     const filename = `${ts}_${rnd}_${safeName}`;
     const path = `${folder}/${filename}`;
 
-    setStatus(`Uploading to ${owner}/${repo}@${branch}\nPath: ${path}\nThis creates a commit in your repo…`);
+    setStatus(`Uploading to ${owner}/${repo}@${branch}\nPath: ${path}\nCreating a commit…`);
 
-    // If somehow same name exists, include sha (update). Normally timestamp prevents collisions.
     const sha = await getExistingFileSha({ owner, repo, branch, token, path });
 
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodePath(path)}`;
-    const payload = {
-      message: `Upload PDF: ${safeName}`,
-      content: base64,
-      branch
-    };
+    const payload = { message: `Upload PDF: ${safeName}`, content: base64, branch };
     if (sha) payload.sha = sha;
 
-    const result = await ghFetch(url, {
-      token,
-      method: "PUT",
-      body: JSON.stringify(payload)
-    });
+    await ghFetch(url, { token, method: "PUT", body: JSON.stringify(payload) });
 
     const rawLink = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
-    setStatus(
-      `✅ Uploaded!\n\nSaved as: ${filename}\n\nRaw link (public repos):\n${rawLink}\n\nNow click “List PDFs” to see it in the table.`
-    );
-
+    setStatus(`✅ Uploaded!\nSaved as: ${filename}\nRaw link:\n${rawLink}`);
     $("file").value = "";
-    await listPDFs(); // refresh list
+    await listPDFs();
   }
 
   async function listPDFs() {
-    requireRepoFields();
     const { owner, repo, branch, folder, token } = cfg();
 
     setStatus(`Loading list from ${owner}/${repo}@${branch}\nFolder: ${folder} …`);
@@ -264,26 +244,26 @@
       .map(x => ({
         name: x.name,
         path: x.path,
-        sha: x.sha,
         size: x.size || 0,
-        download_url: x.download_url || "",
         raw_url: `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${x.path}`
       }))
-      .sort((a,b) => b.name.localeCompare(a.name)); // newest-ish by timestamp prefix
+      .sort((a,b) => b.name.localeCompare(a.name));
 
+    lastFiles = pdfs;
     renderTable(pdfs);
     setStatus(`✅ Listed ${pdfs.length} PDF(s). Use search to filter.`);
     $("refreshBtn").disabled = false;
   }
 
   async function downloadViaAPI(item) {
-    // Works for public + private (with token) because we fetch raw bytes via API
     const { owner, repo, branch, token } = cfg();
+
+    // If no token, open raw link (works for public repos)
     if (!token) {
-      // For public repos, we can just open raw_url without token
       window.open(item.raw_url, "_blank", "noopener,noreferrer");
       return;
     }
+
     setStatus(`Downloading:\n${item.path}`);
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodePath(item.path)}?ref=${encodeURIComponent(branch)}`;
     const res = await fetch(url, {
@@ -335,13 +315,11 @@
       tr.appendChild(td2);
 
       const td3 = document.createElement("td");
-      td3.innerHTML = `
-        <div class="muted">Raw (public):</div>
-        <div class="mono" style="word-break:break-all;">${escapeHtml(f.raw_url)}</div>
-      `;
+      td3.innerHTML = `<div class="mono" style="word-break:break-all;">${escapeHtml(f.raw_url)}</div>`;
       tr.appendChild(td3);
 
       const td4 = document.createElement("td");
+
       const btn = document.createElement("button");
       btn.textContent = "Download";
       btn.onclick = async () => {
@@ -359,19 +337,10 @@
       td4.appendChild(btn);
       td4.appendChild(document.createElement("div")).style.height = "8px";
       td4.appendChild(copy);
-      tr.appendChild(td4);
 
+      tr.appendChild(td4);
       tbody.appendChild(tr);
     }
-  }
-
-  function escapeHtml(s) {
-    return String(s || "")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
   }
 
   // Events
@@ -386,20 +355,13 @@
     catch (e) { setStatus("ERROR: " + e.message); $("refreshBtn").disabled = false; }
   });
 
-  $("search").addEventListener("input", async () => {
-    // re-render using last list (stored in window)
-    if (window.__lastFiles) renderTable(window.__lastFiles);
-  });
+  $("search").addEventListener("input", () => renderTable(lastFiles));
 
   $("clearBtn").addEventListener("click", () => {
     $("search").value = "";
     $("status").textContent = "Ready.";
     $("tbody").innerHTML = `<tr><td colspan="4" class="muted">No files listed yet. Click “List PDFs”.</td></tr>`;
   });
-
-  // Keep latest list in memory so search filters instantly
-  const origRender = renderTable;
-  renderTable = (files) => { window.__lastFiles = files; origRender(files); };
 
 })();
 </script>
