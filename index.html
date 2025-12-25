@@ -3,237 +3,1356 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PDF → Word (.docx) Converter</title>
+  <title>PDF Cutter — Preview + Blank Pages + Download Only From Preview</title>
+
+  <!-- PDF.js (render) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.7.570/pdf.min.js"></script>
+  <!-- jsPDF (export) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.3/jspdf.umd.min.js"></script>
+
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:24px;max-width:980px}
-    .card{border:1px solid #ddd;border-radius:14px;padding:16px}
-    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-    button{padding:10px 14px;border:0;border-radius:10px;cursor:pointer}
-    button:disabled{opacity:.55;cursor:not-allowed}
-    .primary{background:#0b74ff;color:#fff}
-    .muted{color:#666;font-size:14px;line-height:1.4}
-    progress{width:100%;height:14px}
-    .log{white-space:pre-wrap;background:#f7f7f7;border:1px solid #eee;border-radius:10px;padding:10px;margin-top:12px;font-size:13px}
-    .warn{background:#fff7e6;border:1px solid #ffe2a8;padding:10px;border-radius:10px;margin-top:12px}
-    code{background:#f2f2f2;padding:2px 6px;border-radius:6px}
+    :root{
+      --bg:#0b1020;
+      --text:#e9ecff;
+      --muted:#aeb7e6;
+      --accent:#7aa2ff;
+      --danger:#ff6b6b;
+      --ok:#42d392;
+      --border:rgba(255,255,255,.12);
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 14px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background: radial-gradient(1100px 650px at 20% 0%, #1a2a5a 0%, var(--bg) 45%, #070b16 100%);
+      color: var(--text);
+    }
+    header{
+      padding:18px 18px 10px;
+      display:flex;
+      gap:12px;
+      align-items:flex-end;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      border-bottom:1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0));
+    }
+    header h1{font-size:16px;margin:0;letter-spacing:.2px;}
+    header p{
+      margin:6px 0 0;
+      font-size:12px;
+      color:var(--muted);
+      max-width:1100px;
+      line-height:1.35;
+    }
+
+    .wrap{
+      display:grid;
+      grid-template-columns: 420px 1fr;
+      gap:14px;
+      padding:14px;
+    }
+    @media (max-width: 980px){ .wrap{grid-template-columns:1fr} }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:12px 12px 10px;
+      background: rgba(0,0,0,.12);
+      border-bottom: 1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .card .hd b{font-size:13px;letter-spacing:.2px;}
+    .card .bd{ padding:12px; }
+
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    input[type="file"]{
+      width:100%;
+      padding:10px;
+      border-radius:12px;
+      border:1px dashed rgba(255,255,255,.25);
+      background: rgba(0,0,0,.18);
+      color: var(--text);
+    }
+
+    button, input[type="range"]{ font: inherit; }
+    button{
+      border:1px solid var(--border);
+      background: rgba(0,0,0,.20);
+      color: var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      transition: transform .04s ease, background .15s ease, border-color .15s ease;
+      user-select:none;
+    }
+    button:hover{ background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.22); }
+    button:active{ transform: translateY(1px); }
+    button.primary{
+      background: linear-gradient(180deg, rgba(122,162,255,.35), rgba(122,162,255,.18));
+      border-color: rgba(122,162,255,.55);
+    }
+    button.danger{
+      background: linear-gradient(180deg, rgba(255,107,107,.32), rgba(255,107,107,.16));
+      border-color: rgba(255,107,107,.55);
+    }
+    button.ok{
+      background: linear-gradient(180deg, rgba(66,211,146,.28), rgba(66,211,146,.14));
+      border-color: rgba(66,211,146,.55);
+    }
+    button[disabled]{ opacity:.45; cursor:not-allowed; transform:none !important; }
+
+    .hint{
+      font-size:12px;
+      color: var(--muted);
+      line-height:1.35;
+      background: rgba(0,0,0,.16);
+      border:1px solid var(--border);
+      border-radius: 12px;
+      padding:10px 10px;
+    }
+    .hint b{color: var(--text)}
+    .small{ font-size:12px; color: var(--muted); }
+    .mono{
+      font-variant-numeric: tabular-nums;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    label.chk{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background: rgba(0,0,0,.14);
+      font-size:12px;
+      color: var(--muted);
+    }
+    label.chk input{ transform: translateY(1px); }
+
+    .kv{
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap:8px 12px;
+      font-size:12px;
+      color: var(--muted);
+      padding-top:10px;
+      border-top: 1px solid var(--border);
+      margin-top:10px;
+    }
+    .kv div:nth-child(2n){
+      color: var(--text);
+      text-align:right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .viewer{ padding:12px; }
+    .toolbar{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:10px;
+    }
+    .toolbar .left, .toolbar .right{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    .toolbar .stat{ font-size:12px; color: var(--muted); }
+
+    .canvasWrap{
+      position:relative;
+      width:100%;
+      overflow:auto;
+      border-radius: var(--radius);
+      border:1px solid var(--border);
+      background: #f3f4f6;
+      box-shadow: none;
+      max-height: calc(100vh - 170px);
+      padding: 10px;
+      scrollbar-gutter: stable both-edges;
+    }
+    .stage{ position:relative; display:inline-block; transform-origin: top left; box-shadow:none; }
+    #pdfCanvas{ display:block; border-radius:8px; box-shadow:none !important; background:#ffffff; }
+    #overlay{ position:absolute; left:0; top:0; pointer-events:auto; border-radius:8px; box-shadow:none !important; background:transparent !important; }
+
+    .list{
+      max-height: 160px;
+      overflow:auto;
+      border:1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(0,0,0,.14);
+    }
+    .listItem{
+      padding:10px 10px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      font-size:12px;
+      color: var(--muted);
+    }
+    .listItem:last-child{border-bottom:none}
+
+    /* Modal preview */
+    .modalBackdrop{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(6px);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      z-index:9999;
+    }
+    .modal{
+      width:min(1100px, 96vw);
+      height:min(88vh, 920px);
+      border-radius: 18px;
+      border:1px solid rgba(255,255,255,.14);
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+      box-shadow: 0 18px 60px rgba(0,0,0,.55);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+    .modalHd{
+      padding:12px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.22);
+    }
+    .modalHd b{font-size:13px;}
+    .modalBd{
+      padding:12px;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:12px;
+      height:100%;
+      overflow:hidden;
+    }
+    .previewWrap{
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);
+      background:#f3f4f6;
+      overflow:auto;
+      padding:10px;
+      height:100%;
+    }
+    .previewStage{display:flex; flex-direction:column; gap:14px;}
+    .previewPage{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      align-items:center;
+    }
+    .previewPage .lbl{
+      font-size:12px;
+      color:rgba(255,255,255,.75);
+      background: rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.12);
+      padding:6px 10px;
+      border-radius: 999px;
+    }
+    .previewCanvas{
+      border-radius:10px;
+      background:#fff;
+      box-shadow:none;
+      border:1px solid rgba(0,0,0,.08);
+    }
+    .modalFooter{
+      padding:12px;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      border-top:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+    }
+    .progress{
+      font-size:12px;
+      color: var(--muted);
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
   </style>
 </head>
+
 <body>
-  <h1>PDF → Word (.docx) Converter</h1>
+<header>
+  <div>
+    <h1>PDF Cutter — preview edits + add blank pages</h1>
+    <p>
+      Upload → draw cuts → add blank pages in the editor → click <b>Preview</b> → download only from the preview.
+      Header/footer content is removed but their space stays blank.
+    </p>
+  </div>
+</header>
 
+<div class="wrap">
   <div class="card">
-    <div class="row">
-      <input id="pdfFile" type="file" accept="application/pdf" />
-      <button id="convertBtn" class="primary" disabled>Convert to Word</button>
-      <button id="downloadBtn" disabled>Download .docx</button>
-    </div>
-
-    <div class="warn">
-      <div><strong>Important limitations</strong></div>
-      <div class="muted">
-        Browser-side conversion extracts text and rebuilds a Word file. Layout won’t be perfect (tables/columns/fonts).
-        Scanned PDFs need OCR (not included).
+    <div class="hd"><b>Controls</b></div>
+    <div class="bd">
+      <div class="row">
+        <input id="file" type="file" accept="application/pdf" />
       </div>
-    </div>
 
-    <div style="margin-top:14px">
-      <progress id="prog" value="0" max="100"></progress>
-      <div id="status" class="muted" style="margin-top:6px">Loading libraries…</div>
-      <div id="log" class="log"></div>
+      <div style="height:10px"></div>
+
+      <div class="row">
+        <button id="modeDraw" class="primary">Mode: Draw cut</button>
+        <button id="modeDelete">Mode: Delete cut</button>
+        <button id="clearPage" class="danger" disabled>Clear page</button>
+        <button id="clearAll" class="danger" disabled>Clear all</button>
+      </div>
+
+      <div style="height:10px"></div>
+
+      <div class="hint">
+        <b>Blank pages</b><br/>
+        Use <b>Add Blank Before/After</b> in the editor. Blank pages are included in Preview + Download.
+      </div>
+
+      <div style="height:12px"></div>
+
+      <div class="row">
+        <label class="chk">
+          <input id="blankHF" type="checkbox" checked />
+          Keep header + footer BLANK in exported PDF
+        </label>
+      </div>
+
+      <div class="row" style="align-items:center">
+        <div class="small">Header blank:</div>
+        <input id="headerPct" type="range" min="0" max="25" step="0.5" value="7" />
+        <div id="headerPctLabel" class="mono small">7.0%</div>
+      </div>
+
+      <div class="row" style="align-items:center">
+        <div class="small">Footer blank:</div>
+        <input id="footerPct" type="range" min="0" max="25" step="0.5" value="7" />
+        <div id="footerPctLabel" class="mono small">7.0%</div>
+      </div>
+
+      <div style="height:10px"></div>
+
+      <div class="row">
+        <label class="chk">
+          <input id="smartBreaks" type="checkbox" checked />
+          Smart page breaks (avoid splitting lines)
+        </label>
+      </div>
+
+      <div style="height:10px"></div>
+
+      <div class="row" style="align-items:center">
+        <div class="small">Quality:</div>
+        <input id="exportScale" type="range" min="1" max="3" step="0.25" value="2.5" />
+        <div id="exportScaleLabel" class="mono small">2.50×</div>
+      </div>
+
+      <div style="height:12px"></div>
+
+      <div class="row">
+        <button id="previewBtn" class="primary" disabled>Preview</button>
+      </div>
+
+      <div class="kv">
+        <div>Original pages</div><div id="metaPages" class="mono">—</div>
+        <div>Current page</div><div id="metaPage" class="mono">—</div>
+        <div>Cuts on this page</div><div id="metaCuts" class="mono">—</div>
+        <div>Total cuts</div><div id="metaTotalCuts" class="mono">—</div>
+        <div>Blank pages (total)</div><div id="metaBlanks" class="mono">—</div>
+      </div>
+
+      <div style="height:12px"></div>
+
+      <div class="small" style="margin-bottom:8px">Cuts (current page)</div>
+      <div id="cutList" class="list"></div>
+
+      <div style="height:12px"></div>
+
+      <div class="small" style="margin-bottom:8px">Blank pages (current page position)</div>
+      <div id="blankList" class="list"></div>
     </div>
   </div>
 
-  <script>
-    const $ = (id) => document.getElementById(id);
+  <div class="card">
+    <div class="hd"><b>Editor</b></div>
+    <div class="viewer">
+      <div class="toolbar">
+        <div class="left">
+          <button id="prev" disabled>◀ Prev</button>
+          <button id="next" disabled>Next ▶</button>
+          <div class="stat" id="pageStat">No PDF loaded</div>
+        </div>
+        <div class="right">
+          <button id="addBlankBefore" disabled class="primary">+ Blank Before</button>
+          <button id="addBlankAfter" disabled class="primary">+ Blank After</button>
+          <button id="removeBlankBefore" disabled>− Before</button>
+          <button id="removeBlankAfter" disabled>− After</button>
 
-    const pdfInput = $("pdfFile");
-    const convertBtn = $("convertBtn");
-    const downloadBtn = $("downloadBtn");
-    const prog = $("prog");
-    const status = $("status");
-    const logEl = $("log");
+          <button id="zoomOut" disabled>−</button>
+          <div class="small">Zoom: <span id="zoomLabel" class="mono">100%</span></div>
+          <button id="zoomIn" disabled>+</button>
 
-    let lastDocBlob = null;
-    let lastName = "converted.docx";
+          <button id="fitWidth" disabled class="primary">Fit Width</button>
+          <button id="fitPage" disabled>Fit Page</button>
+          <button id="actualSize" disabled>100%</button>
+        </div>
+      </div>
 
-    function setStatus(msg) { status.textContent = msg; }
-    function appendLog(msg) { logEl.textContent += msg + "\n"; }
-    function setProgress(pct) { prog.value = Math.max(0, Math.min(100, pct)); }
+      <div class="canvasWrap" id="canvasWrap">
+        <div class="stage" id="stage" style="display:none;">
+          <canvas id="pdfCanvas"></canvas>
+          <canvas id="overlay"></canvas>
+        </div>
 
-    function loadScript(src) {
-      return new Promise((resolve, reject) => {
-        const s = document.createElement("script");
-        s.src = src;
-        s.async = true;
-        s.onload = () => resolve();
-        s.onerror = () => reject(new Error("Failed to load: " + src));
-        document.head.appendChild(s);
+        <div id="emptyState" class="hint" style="max-width:720px;">
+          <b>Upload a PDF to start</b><br/>
+          Drag to select a section you want to delete.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modalBackdrop" id="previewModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Preview Edited PDF">
+    <div class="modalHd">
+      <b>Preview (final output)</b>
+      <div class="row">
+        <button id="closePreview">Close</button>
+      </div>
+    </div>
+    <div class="modalBd">
+      <div class="previewWrap" id="previewWrap">
+        <div class="previewStage" id="previewStage"></div>
+      </div>
+    </div>
+    <div class="modalFooter">
+      <div class="progress"><span id="previewProgress">Ready</span></div>
+      <div class="row">
+        <button id="previewDownload" class="ok" disabled>Download</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const pdfjsLib = window['pdfjs-dist/build/pdf'];
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.7.570/pdf.worker.min.js';
+  const { jsPDF } = window.jspdf;
+
+  // UI
+  const elFile = document.getElementById('file');
+  const canvasWrap = document.getElementById('canvasWrap');
+  const elStage = document.getElementById('stage');
+  const elEmpty = document.getElementById('emptyState');
+
+  const pdfCanvas = document.getElementById('pdfCanvas');
+  const overlay = document.getElementById('overlay');
+  const ctx = pdfCanvas.getContext('2d');
+  const octx = overlay.getContext('2d');
+
+  const btnPrev = document.getElementById('prev');
+  const btnNext = document.getElementById('next');
+  const btnZoomIn = document.getElementById('zoomIn');
+  const btnZoomOut = document.getElementById('zoomOut');
+  const btnFitWidth = document.getElementById('fitWidth');
+  const btnFitPage  = document.getElementById('fitPage');
+  const btnActualSize = document.getElementById('actualSize');
+  const zoomLabel = document.getElementById('zoomLabel');
+  const pageStat = document.getElementById('pageStat');
+
+  const btnModeDraw = document.getElementById('modeDraw');
+  const btnModeDelete = document.getElementById('modeDelete');
+  const btnClearPage = document.getElementById('clearPage');
+  const btnClearAll = document.getElementById('clearAll');
+  const previewBtn = document.getElementById('previewBtn');
+
+  const exportScale = document.getElementById('exportScale');
+  const exportScaleLabel = document.getElementById('exportScaleLabel');
+
+  const blankHF = document.getElementById('blankHF');
+  const headerPct = document.getElementById('headerPct');
+  const footerPct = document.getElementById('footerPct');
+  const headerPctLabel = document.getElementById('headerPctLabel');
+  const footerPctLabel = document.getElementById('footerPctLabel');
+  const smartBreaks = document.getElementById('smartBreaks');
+
+  const metaPages = document.getElementById('metaPages');
+  const metaPage = document.getElementById('metaPage');
+  const metaCuts = document.getElementById('metaCuts');
+  const metaTotalCuts = document.getElementById('metaTotalCuts');
+  const metaBlanks = document.getElementById('metaBlanks');
+
+  const cutList = document.getElementById('cutList');
+  const blankList = document.getElementById('blankList');
+
+  // Blank page controls (editor toolbar)
+  const addBlankBefore = document.getElementById('addBlankBefore');
+  const addBlankAfter = document.getElementById('addBlankAfter');
+  const removeBlankBefore = document.getElementById('removeBlankBefore');
+  const removeBlankAfter = document.getElementById('removeBlankAfter');
+
+  // Preview modal
+  const previewModal = document.getElementById('previewModal');
+  const previewWrap = document.getElementById('previewWrap');
+  const previewStage = document.getElementById('previewStage');
+  const closePreview = document.getElementById('closePreview');
+  const previewProgress = document.getElementById('previewProgress');
+  const previewDownload = document.getElementById('previewDownload');
+
+  // State
+  let pdfDoc = null;
+  let pageNum = 1;
+  let zoom = 1.0;
+  let viewMode = 'width';
+
+  // Cuts: cutsByPage[page] = [{yPct, hPct}]  FULL WIDTH CUTS
+  const cutsByPage = new Map();
+
+  // Blank pages insertion:
+  // blanksBefore[p] = number of blank pages before original page p
+  // blanksAfter[p]  = number of blank pages after original page p
+  const blanksBefore = new Map();
+  const blanksAfter = new Map();
+
+  let mode = 'draw';
+  let isDragging = false;
+  let dragStart = null;
+  let liveCut = null;
+
+  // Cache of last generated output pages
+  let lastOutputPages = null; // { pages:[dataURL...], w, h, orientation }
+
+  function invalidateOutputCache(){ lastOutputPages = null; }
+
+  function setMode(newMode){
+    mode = newMode;
+    if (mode === 'draw'){
+      btnModeDraw.classList.add('primary');
+      btnModeDelete.classList.remove('primary');
+      overlay.style.cursor = 'ns-resize';
+    } else {
+      btnModeDelete.classList.add('primary');
+      btnModeDraw.classList.remove('primary');
+      overlay.style.cursor = 'pointer';
+    }
+  }
+
+  function pageCuts(p = pageNum){
+    if (!cutsByPage.has(p)) cutsByPage.set(p, []);
+    return cutsByPage.get(p);
+  }
+
+  function totalCuts(){
+    let n = 0;
+    for (const arr of cutsByPage.values()) n += arr.length;
+    return n;
+  }
+
+  function getBlankCount(map, p){ return map.get(p) || 0; }
+  function setBlankCount(map, p, v){
+    if (v <= 0) map.delete(p);
+    else map.set(p, v);
+  }
+  function totalBlanks(){
+    let n = 0;
+    for (const v of blanksBefore.values()) n += v;
+    for (const v of blanksAfter.values()) n += v;
+    return n;
+  }
+
+  function clamp01(v){ return Math.max(0, Math.min(1, v)); }
+
+  function pxCutToPct(cutPx){
+    const h = overlay.height;
+    return { yPct: clamp01(cutPx.y / h), hPct: clamp01(cutPx.h / h) };
+  }
+
+  function pctCutToPx(cutPct, h=overlay.height){
+    return { y: cutPct.yPct * h, h: cutPct.hPct * h };
+  }
+
+  function normalizeCut(a, b){
+    const y1 = Math.min(a.y, b.y);
+    const y2 = Math.max(a.y, b.y);
+    return { y: y1, h: (y2 - y1) };
+  }
+
+  function getMousePos(evt){
+    const r = overlay.getBoundingClientRect();
+    const x = (evt.clientX - r.left) * (overlay.width / r.width);
+    const y = (evt.clientY - r.top) * (overlay.height / r.height);
+    return { x, y };
+  }
+
+  function getInnerSize(el){
+    const cs = getComputedStyle(el);
+    const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+    const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+    return { w: el.clientWidth - padX, h: el.clientHeight - padY };
+  }
+
+  function computeZoomFitWidth(baseViewport){
+    const { w: availW } = getInnerSize(canvasWrap);
+    const margin = 0.98;
+    return Math.max(0.2, Math.min(3, (availW / baseViewport.width) * margin));
+  }
+
+  function computeZoomFitPage(baseViewport){
+    const { w: availW, h: availH } = getInnerSize(canvasWrap);
+    const margin = 0.98;
+    return Math.max(0.2, Math.min(3, Math.min(availW / baseViewport.width, availH / baseViewport.height) * margin));
+  }
+
+  function mergeRanges(ranges){
+    if (!ranges.length) return [];
+    ranges.sort((a,b)=>a.y1-b.y1);
+    const out = [ { y1: ranges[0].y1, y2: ranges[0].y2 } ];
+    for (let i=1;i<ranges.length;i++){
+      const cur = ranges[i];
+      const last = out[out.length-1];
+      if (cur.y1 <= last.y2) last.y2 = Math.max(last.y2, cur.y2);
+      else out.push({y1:cur.y1, y2:cur.y2});
+    }
+    return out;
+  }
+
+  function updateHFLabels(){
+    headerPctLabel.textContent = `${Number(headerPct.value).toFixed(1)}%`;
+    footerPctLabel.textContent = `${Number(footerPct.value).toFixed(1)}%`;
+  }
+
+  function updateMetaAndLists(){
+    if (!pdfDoc){
+      metaPages.textContent = '—';
+      metaPage.textContent = '—';
+      metaCuts.textContent = '—';
+      metaTotalCuts.textContent = '—';
+      metaBlanks.textContent = '—';
+      cutList.innerHTML = '';
+      blankList.innerHTML = '';
+      return;
+    }
+
+    metaPages.textContent = String(pdfDoc.numPages);
+    metaPage.textContent = String(pageNum);
+    metaCuts.textContent = String(pageCuts().length);
+    metaTotalCuts.textContent = String(totalCuts());
+    metaBlanks.textContent = String(totalBlanks());
+
+    btnClearPage.disabled = pageCuts().length === 0;
+    btnClearAll.disabled = totalCuts() === 0;
+
+    // Blank controls enabled when PDF loaded
+    addBlankBefore.disabled = false;
+    addBlankAfter.disabled = false;
+    removeBlankBefore.disabled = getBlankCount(blanksBefore, pageNum) === 0;
+    removeBlankAfter.disabled = getBlankCount(blanksAfter, pageNum) === 0;
+
+    // Cuts list
+    const cuts = pageCuts();
+    if (cuts.length === 0){
+      cutList.innerHTML = `<div class="listItem"><span>No cuts</span><span class="mono">—</span></div>`;
+    } else {
+      cutList.innerHTML = '';
+      cuts.forEach((c, idx) => {
+        const item = document.createElement('div');
+        item.className = 'listItem';
+
+        const left = document.createElement('span');
+        const pctTop = Math.round(c.yPct * 1000)/10;
+        const pctH = Math.round(c.hPct * 1000)/10;
+        left.textContent = `Cut ${idx + 1} (y:${pctTop}%, h:${pctH}%)`;
+
+        const right = document.createElement('button');
+        right.textContent = 'Remove';
+        right.className = 'danger';
+        right.style.padding = '6px 10px';
+        right.onclick = () => {
+          cuts.splice(idx, 1);
+          invalidateOutputCache();
+          drawOverlay();
+        };
+
+        item.appendChild(left);
+        item.appendChild(right);
+        cutList.appendChild(item);
       });
     }
 
-    // ✅ Use pdfjs-dist LEGACY build (guarantees window.pdfjsLib)
-    async function loadLibraries() {
-      await loadScript("https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/legacy/build/pdf.min.js");
-      if (!window.pdfjsLib) throw new Error("pdfjsLib did not load (PDF.js blocked?)");
+    // Blank list for current page position
+    const bB = getBlankCount(blanksBefore, pageNum);
+    const bA = getBlankCount(blanksAfter, pageNum);
 
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-        "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/legacy/build/pdf.worker.min.js";
+    blankList.innerHTML = '';
+    blankList.innerHTML += `
+      <div class="listItem">
+        <span>Blank pages <b>before</b> page ${pageNum}</span>
+        <span class="mono">${bB}</span>
+      </div>
+      <div class="listItem">
+        <span>Blank pages <b>after</b> page ${pageNum}</span>
+        <span class="mono">${bA}</span>
+      </div>
+    `;
+  }
 
-      await loadScript("https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js");
-      if (!window.docx) throw new Error("docx library did not load (blocked?)");
+  function drawOverlay(){
+    octx.clearRect(0, 0, overlay.width, overlay.height);
 
-      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js");
-      if (!window.saveAs) throw new Error("FileSaver did not load (blocked?)");
+    // Header/footer blank regions (blue dashed)
+    if (blankHF.checked){
+      const h = overlay.height;
+      const topH = Math.round((Number(headerPct.value) / 100) * h);
+      const botH = Math.round((Number(footerPct.value) / 100) * h);
+      octx.save();
+      octx.lineWidth = 2;
+      octx.setLineDash([10, 8]);
+      octx.strokeStyle = 'rgba(122,162,255,0.85)';
+      octx.fillStyle = 'rgba(122,162,255,0.10)';
+      if (topH > 0){
+        octx.fillRect(0, 0, overlay.width, topH);
+        octx.strokeRect(0, 0, overlay.width, topH);
+      }
+      if (botH > 0){
+        octx.fillRect(0, h - botH, overlay.width, botH);
+        octx.strokeRect(0, h - botH, overlay.width, botH);
+      }
+      octx.restore();
     }
 
-    function itemsToLines(items) {
-      const normalized = items
-        .filter(it => it.str && it.str.trim().length)
-        .map(it => ({
-          text: it.str,
-          x: it.transform[4],
-          y: it.transform[5],
-          w: it.width || 0
-        }))
-        .sort((a,b) => (b.y - a.y) || (a.x - b.x));
-
-      const linesMap = new Map();
-      const yTolerance = 2;
-
-      for (const it of normalized) {
-        let key = null;
-        for (const k of linesMap.keys()) {
-          if (Math.abs(k - it.y) <= yTolerance) { key = k; break; }
-        }
-        if (key === null) key = it.y;
-        if (!linesMap.has(key)) linesMap.set(key, []);
-        linesMap.get(key).push(it);
-      }
-
-      const lineKeys = Array.from(linesMap.keys()).sort((a,b) => b - a);
-      const lines = [];
-
-      for (const y of lineKeys) {
-        const row = linesMap.get(y).sort((a,b) => a.x - b.x);
-        let line = "";
-        let prevX = null;
-
-        for (const chunk of row) {
-          if (prevX !== null && (chunk.x - prevX) > 6 && !line.endsWith(" ")) line += " ";
-          line += chunk.text;
-          prevX = chunk.x + (chunk.w || 0);
-        }
-
-        line = line.replace(/\s+/g, " ").trim();
-        if (line) lines.push(line);
-      }
-      return lines;
+    // Cuts (red)
+    const cuts = pageCuts();
+    for (let i = 0; i < cuts.length; i++){
+      const px = pctCutToPx(cuts[i]);
+      octx.save();
+      octx.lineWidth = 2;
+      octx.setLineDash([]);
+      octx.strokeStyle = 'rgba(255,107,107,0.95)';
+      octx.fillStyle = 'rgba(255,107,107,0.15)';
+      octx.fillRect(0, px.y, overlay.width, px.h);
+      octx.strokeRect(0, px.y, overlay.width, px.h);
+      octx.restore();
     }
 
-    pdfInput.addEventListener("change", () => {
-      lastDocBlob = null;
-      downloadBtn.disabled = true;
-      if (pdfInput.files && pdfInput.files[0]) {
-        setStatus(`Selected: ${pdfInput.files[0].name}`);
-        lastName = pdfInput.files[0].name.replace(/\.pdf$/i, "") + ".docx";
-        convertBtn.disabled = false;
-      } else {
-        convertBtn.disabled = true;
+    // Live cut
+    if (liveCut){
+      octx.save();
+      octx.lineWidth = 2;
+      octx.setLineDash([8,6]);
+      octx.strokeStyle = 'rgba(122,162,255,0.95)';
+      octx.fillStyle = 'rgba(122,162,255,0.12)';
+      octx.fillRect(0, liveCut.y, overlay.width, liveCut.h);
+      octx.strokeRect(0, liveCut.y, overlay.width, liveCut.h);
+      octx.restore();
+    }
+
+    updateMetaAndLists();
+  }
+
+  async function renderPage(){
+    if (!pdfDoc) return;
+
+    const page = await pdfDoc.getPage(pageNum);
+    const base = page.getViewport({ scale: 1 });
+
+    if (viewMode === 'width') zoom = computeZoomFitWidth(base);
+    else if (viewMode === 'page') zoom = computeZoomFitPage(base);
+
+    const dpr = window.devicePixelRatio || 1;
+    const viewport = page.getViewport({ scale: zoom });
+
+    pdfCanvas.width = Math.floor(viewport.width * dpr);
+    pdfCanvas.height = Math.floor(viewport.height * dpr);
+    pdfCanvas.style.width = `${Math.floor(viewport.width)}px`;
+    pdfCanvas.style.height = `${Math.floor(viewport.height)}px`;
+
+    overlay.width = pdfCanvas.width;
+    overlay.height = pdfCanvas.height;
+    overlay.style.width = pdfCanvas.style.width;
+    overlay.style.height = pdfCanvas.style.height;
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, viewport.width, viewport.height);
+    await page.render({ canvasContext: ctx, viewport }).promise;
+
+    elStage.style.display = '';
+    elEmpty.style.display = 'none';
+
+    btnPrev.disabled = pageNum <= 1;
+    btnNext.disabled = pageNum >= pdfDoc.numPages;
+
+    btnZoomIn.disabled = false;
+    btnZoomOut.disabled = false;
+    btnFitWidth.disabled = false;
+    btnFitPage.disabled = false;
+    btnActualSize.disabled = false;
+
+    zoomLabel.textContent = `${Math.round(zoom * 100)}%`;
+    pageStat.textContent = `Page ${pageNum} / ${pdfDoc.numPages}`;
+
+    drawOverlay();
+  }
+
+  async function loadPdfFromFile(file){
+    const buf = await file.arrayBuffer();
+    pdfDoc = await pdfjsLib.getDocument({ data: buf }).promise;
+
+    pageNum = 1;
+    zoom = 1.0;
+    viewMode = 'width';
+    cutsByPage.clear();
+    blanksBefore.clear();
+    blanksAfter.clear();
+    invalidateOutputCache();
+
+    await renderPage();
+  }
+
+  // Editor interaction: cuts
+  overlay.addEventListener('mousedown', (evt) => {
+    if (!pdfDoc) return;
+    const pos = getMousePos(evt);
+
+    if (mode === 'draw'){
+      isDragging = true;
+      dragStart = pos;
+      liveCut = { y: pos.y, h: 0 };
+      drawOverlay();
+      return;
+    }
+
+    const cuts = pageCuts();
+    for (let i = cuts.length - 1; i >= 0; i--){
+      const px = pctCutToPx(cuts[i]);
+      if (pos.y >= px.y && pos.y <= (px.y + px.h)){
+        cuts.splice(i, 1);
+        invalidateOutputCache();
+        drawOverlay();
+        break;
       }
-    });
+    }
+  });
 
-    downloadBtn.addEventListener("click", () => {
-      if (!lastDocBlob) return;
-      saveAs(lastDocBlob, lastName);
-    });
+  window.addEventListener('mousemove', (evt) => {
+    if (!pdfDoc) return;
+    if (!isDragging || mode !== 'draw') return;
+    const pos = getMousePos(evt);
+    const cut = normalizeCut({y: dragStart.y}, {y: pos.y});
+    liveCut = { y: cut.y, h: cut.h };
+    drawOverlay();
+  });
 
-    convertBtn.addEventListener("click", async () => {
-      const file = pdfInput.files?.[0];
-      if (!file) return;
+  window.addEventListener('mouseup', () => {
+    if (!pdfDoc) return;
+    if (!isDragging || mode !== 'draw') return;
+    isDragging = false;
 
-      // Guard (prevents "pdfjsLib is not defined" ever happening)
-      if (!window.pdfjsLib) {
-        setStatus("PDF.js not loaded. Check if a browser extension/CDN block is preventing scripts.");
-        appendLog("ERROR: pdfjsLib missing. Open DevTools → Network and verify pdf.min.js loaded (status 200).");
-        return;
+    const minPx = 10 * (window.devicePixelRatio || 1);
+    if (liveCut && liveCut.h >= minPx){
+      pageCuts().push(pxCutToPct(liveCut));
+      invalidateOutputCache();
+    }
+    liveCut = null;
+    dragStart = null;
+    drawOverlay();
+  });
+
+  // Buttons
+  btnModeDraw.addEventListener('click', () => setMode('draw'));
+  btnModeDelete.addEventListener('click', () => setMode('delete'));
+
+  // ✅ Prev/Next bound ONCE (prevents skipping pages)
+  btnPrev.onclick = async () => {
+    if (!pdfDoc || pageNum <= 1) return;
+    pageNum -= 1;
+    await renderPage();
+  };
+  btnNext.onclick = async () => {
+    if (!pdfDoc || pageNum >= pdfDoc.numPages) return;
+    pageNum += 1;
+    await renderPage();
+  };
+
+  btnZoomIn.onclick = async () => { if (!pdfDoc) return; viewMode='manual'; zoom=Math.min(3, zoom+0.15); await renderPage(); };
+  btnZoomOut.onclick = async () => { if (!pdfDoc) return; viewMode='manual'; zoom=Math.max(0.5, zoom-0.15); await renderPage(); };
+  btnFitWidth.onclick = async () => { if (!pdfDoc) return; viewMode='width'; await renderPage(); };
+  btnFitPage.onclick = async () => { if (!pdfDoc) return; viewMode='page'; await renderPage(); };
+  btnActualSize.onclick = async () => { if (!pdfDoc) return; viewMode='manual'; zoom=1.0; await renderPage(); };
+
+  btnClearPage.addEventListener('click', () => {
+    if (!pdfDoc) return;
+    cutsByPage.set(pageNum, []);
+    invalidateOutputCache();
+    drawOverlay();
+  });
+
+  btnClearAll.addEventListener('click', () => {
+    if (!pdfDoc) return;
+    cutsByPage.clear();
+    invalidateOutputCache();
+    drawOverlay();
+  });
+
+  // Blank page controls
+  addBlankBefore.onclick = () => {
+    if (!pdfDoc) return;
+    setBlankCount(blanksBefore, pageNum, getBlankCount(blanksBefore, pageNum) + 1);
+    invalidateOutputCache();
+    drawOverlay();
+  };
+  addBlankAfter.onclick = () => {
+    if (!pdfDoc) return;
+    setBlankCount(blanksAfter, pageNum, getBlankCount(blanksAfter, pageNum) + 1);
+    invalidateOutputCache();
+    drawOverlay();
+  };
+  removeBlankBefore.onclick = () => {
+    if (!pdfDoc) return;
+    const cur = getBlankCount(blanksBefore, pageNum);
+    if (cur > 0) setBlankCount(blanksBefore, pageNum, cur - 1);
+    invalidateOutputCache();
+    drawOverlay();
+  };
+  removeBlankAfter.onclick = () => {
+    if (!pdfDoc) return;
+    const cur = getBlankCount(blanksAfter, pageNum);
+    if (cur > 0) setBlankCount(blanksAfter, pageNum, cur - 1);
+    invalidateOutputCache();
+    drawOverlay();
+  };
+
+  exportScale.addEventListener('input', () => {
+    exportScaleLabel.textContent = `${Number(exportScale.value).toFixed(2)}×`;
+    invalidateOutputCache();
+  });
+
+  blankHF.addEventListener('change', () => { invalidateOutputCache(); drawOverlay(); });
+  headerPct.addEventListener('input', () => { updateHFLabels(); invalidateOutputCache(); drawOverlay(); });
+  footerPct.addEventListener('input', () => { updateHFLabels(); invalidateOutputCache(); drawOverlay(); });
+  smartBreaks.addEventListener('change', () => { invalidateOutputCache(); });
+
+  window.addEventListener('resize', async () => {
+    if (!pdfDoc) return;
+    if (viewMode === 'width' || viewMode === 'page') await renderPage();
+  });
+
+  // ---- SMART BREAK (robust) ----
+  function findSmartBreakHeight(srcCtx, targetW, startY, maxH){
+    const boundaryY = startY + maxH;
+
+    const minKeep = 90;
+    const keepAwayBottom = 18;
+    const windowH = Math.min(280, maxH - 20);
+    if (windowH < 80 || maxH < minKeep) return maxH;
+
+    const yTop = Math.max(startY + 30, boundaryY - windowH);
+    const yBot = boundaryY - keepAwayBottom;
+    if (yBot <= yTop) return maxH;
+
+    const xMargin = Math.floor(targetW * 0.07);
+    const scanW = Math.max(80, targetW - 2 * xMargin);
+    const scanH = yBot - yTop;
+
+    const img = srcCtx.getImageData(xMargin, yTop, scanW, scanH).data;
+
+    const stepX = 4;
+    const cols = Math.floor(scanW / stepX);
+    const ink = new Float32Array(scanH);
+
+    for (let row = 0; row < scanH; row++){
+      let sum = 0;
+      const rowOff = row * scanW * 4;
+      for (let x = 0; x < scanW; x += stepX){
+        const i = rowOff + x * 4;
+        const r = img[i], g = img[i+1], b = img[i+2];
+        const lum = (0.2126*r + 0.7152*g + 0.0722*b);
+        const d = Math.max(0, 242 - lum);
+        sum += d;
       }
+      ink[row] = sum / Math.max(1, cols);
+    }
 
-      const pdfjsLib = window.pdfjsLib; // safe local alias
+    const sm = new Float32Array(scanH);
+    const rad = 3;
+    for (let i = 0; i < scanH; i++){
+      let s = 0, c = 0;
+      for (let k = -rad; k <= rad; k++){
+        const j = i + k;
+        if (j >= 0 && j < scanH){ s += ink[j]; c++; }
+      }
+      sm[i] = s / c;
+    }
 
-      convertBtn.disabled = true;
-      downloadBtn.disabled = true;
-      lastDocBlob = null;
-      logEl.textContent = "";
-      setProgress(0);
+    const arr = Array.from(sm);
+    arr.sort((a,b)=>a-b);
+    const thr = arr[Math.floor(arr.length * 0.08)] ?? sm[0];
 
-      try {
-        appendLog("Reading file…");
-        setStatus("Reading PDF…");
-
-        const arrayBuffer = await file.arrayBuffer();
-        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-        const pdf = await loadingTask.promise;
-
-        const total = pdf.numPages;
-        appendLog(`Pages: ${total}`);
-        setStatus(`Extracting text from ${total} pages…`);
-
-        const docChildren = [];
-
-        for (let pageNo = 1; pageNo <= total; pageNo++) {
-          setStatus(`Processing page ${pageNo}/${total}…`);
-          setProgress(Math.round(((pageNo - 1) / total) * 100));
-
-          const page = await pdf.getPage(pageNo);
-          const textContent = await page.getTextContent();
-
-          const lines = itemsToLines(textContent.items);
-          appendLog(`Page ${pageNo}: ${lines.length} line(s)`);
-
-          for (const line of lines) {
-            docChildren.push(
-              new docx.Paragraph({ children: [new docx.TextRun({ text: line })] })
-            );
-          }
-          if (pageNo < total) {
-            docChildren.push(new docx.Paragraph({ children: [new docx.PageBreak()] }));
-          }
+    let bestLen = 0, bestMid = -1;
+    let runStart = -1;
+    for (let i = 0; i < scanH; i++){
+      const low = sm[i] <= thr;
+      if (low && runStart === -1) runStart = i;
+      if (!low && runStart !== -1){
+        const runEnd = i - 1;
+        const len = runEnd - runStart + 1;
+        if (len > bestLen){
+          bestLen = len;
+          bestMid = Math.floor((runStart + runEnd) / 2);
         }
-
-        setStatus("Building .docx…");
-        setProgress(95);
-
-        const doc = new docx.Document({
-          sections: [{ properties: {}, children: docChildren }]
-        });
-
-        lastDocBlob = await docx.Packer.toBlob(doc);
-
-        setProgress(100);
-        setStatus("Done. Click Download .docx");
-        downloadBtn.disabled = false;
-      } catch (err) {
-        console.error(err);
-        setStatus("Error: " + (err?.message || String(err)));
-        appendLog("ERROR: " + (err?.stack || err?.message || String(err)));
-      } finally {
-        convertBtn.disabled = false;
+        runStart = -1;
       }
+    }
+    if (runStart !== -1){
+      const runEnd = scanH - 1;
+      const len = runEnd - runStart + 1;
+      if (len > bestLen){
+        bestLen = len;
+        bestMid = Math.floor((runStart + runEnd) / 2);
+      }
+    }
+
+    if (bestMid !== -1 && bestLen >= 6){
+      const breakY = yTop + bestMid;
+      const breakH = breakY - startY;
+      const safeBreakH = Math.max(minKeep, breakH - 6);
+      if (safeBreakH >= minKeep && safeBreakH <= maxH) return safeBreakH;
+    }
+    return maxH;
+  }
+
+  // Core generator: produces output page images (dataURLs)
+  async function generateEditedPages(){
+    const exp = Number(exportScale.value) || 2.5;
+
+    const firstPage = await pdfDoc.getPage(1);
+    const firstVp = firstPage.getViewport({ scale: exp });
+    const targetW = Math.floor(firstVp.width);
+    const targetH = Math.floor(firstVp.height);
+    const orientation = targetW >= targetH ? 'landscape' : 'portrait';
+
+    const headerPx = (blankHF.checked ? Math.round((Number(headerPct.value)/100) * targetH) : 0);
+    const footerPx = (blankHF.checked ? Math.round((Number(footerPct.value)/100) * targetH) : 0);
+
+    const bodyTop = headerPx;
+    const bodyBottom = targetH - footerPx;
+    const bodyH = Math.max(1, bodyBottom - bodyTop);
+
+    if (bodyH < 140) throw new Error('Header/Footer blank margins are too large.');
+
+    const outCan = document.createElement('canvas');
+    outCan.width = targetW;
+    outCan.height = targetH;
+    const outCtx = outCan.getContext('2d');
+
+    function clearOut(){
+      outCtx.fillStyle = '#ffffff';
+      outCtx.fillRect(0, 0, targetW, targetH);
+    }
+
+    let outBodyY = 0;
+    const pageImages = [];
+
+    function pushCurrentPageImage(){
+      pageImages.push(outCan.toDataURL('image/jpeg', 0.95));
+      clearOut();
+      outBodyY = 0;
+    }
+
+    function pushBlankPage(){
+      // blank page should be fully white
+      clearOut();
+      pageImages.push(outCan.toDataURL('image/jpeg', 0.95));
+      clearOut();
+      outBodyY = 0;
+    }
+
+    clearOut();
+
+    function drawToBody(srcCanvas, srcY, takeH){
+      outCtx.drawImage(
+        srcCanvas,
+        0, srcY, targetW, takeH,
+        0, bodyTop + outBodyY, targetW, takeH
+      );
+    }
+
+    // Helper: insert blanks but ensure they are standalone pages
+    function insertBlanks(count){
+      if (count <= 0) return;
+      // If a page is partially filled, finalize it first so blank page(s) are separate
+      if (outBodyY > 0) pushCurrentPageImage();
+      for (let i=0;i<count;i++) pushBlankPage();
+    }
+
+    for (let p = 1; p <= pdfDoc.numPages; p++){
+      // Insert blank pages BEFORE this original page
+      insertBlanks(getBlankCount(blanksBefore, p));
+
+      const page = await pdfDoc.getPage(p);
+      const vp = page.getViewport({ scale: exp });
+
+      const srcCan = document.createElement('canvas');
+      srcCan.width = Math.floor(vp.width);
+      srcCan.height = Math.floor(vp.height);
+      const srcCtx = srcCan.getContext('2d');
+
+      srcCtx.fillStyle = '#ffffff';
+      srcCtx.fillRect(0,0,srcCan.width,srcCan.height);
+      await page.render({ canvasContext: srcCtx, viewport: vp }).promise;
+
+      let src = srcCan;
+      if (srcCan.width !== targetW || srcCan.height !== targetH){
+        const scaled = document.createElement('canvas');
+        scaled.width = targetW;
+        scaled.height = targetH;
+        const sctx = scaled.getContext('2d');
+        sctx.fillStyle = '#ffffff';
+        sctx.fillRect(0,0,targetW,targetH);
+        sctx.drawImage(srcCan, 0,0, srcCan.width,srcCan.height, 0,0, targetW,targetH);
+        src = scaled;
+      }
+      const normCtx = src.getContext('2d');
+
+      const ranges = [];
+      if (blankHF.checked){
+        if (headerPx > 0) ranges.push({ y1: 0, y2: headerPx });
+        if (footerPx > 0) ranges.push({ y1: targetH - footerPx, y2: targetH });
+      }
+      const userCuts = (cutsByPage.get(p) || []);
+      for (const c of userCuts){
+        const y1 = Math.max(0, Math.floor(c.yPct * targetH));
+        const y2 = Math.min(targetH, Math.ceil((c.yPct + c.hPct) * targetH));
+        if (y2 > y1) ranges.push({ y1, y2 });
+      }
+      const merged = mergeRanges(ranges);
+
+      const kept = [];
+      let cursor = 0;
+      for (const r of merged){
+        if (r.y1 > cursor) kept.push({ y1: cursor, y2: r.y1 });
+        cursor = Math.max(cursor, r.y2);
+      }
+      if (cursor < targetH) kept.push({ y1: cursor, y2: targetH });
+
+      for (const seg of kept){
+        let segY = seg.y1;
+        let segRemaining = seg.y2 - seg.y1;
+
+        while (segRemaining > 0){
+          const bodySpace = bodyH - outBodyY;
+
+          if (segRemaining <= bodySpace){
+            drawToBody(src, segY, segRemaining);
+            outBodyY += segRemaining;
+            segY += segRemaining;
+            segRemaining = 0;
+
+            if (outBodyY >= bodyH) pushCurrentPageImage();
+            continue;
+          }
+
+          let take = bodySpace;
+          if (smartBreaks.checked && bodySpace >= 200){
+            take = findSmartBreakHeight(normCtx, targetW, segY, bodySpace);
+          }
+
+          drawToBody(src, segY, take);
+          outBodyY += take;
+          segY += take;
+          segRemaining -= take;
+
+          // Force page break to avoid splitting a line
+          if (segRemaining > 0) pushCurrentPageImage();
+          else if (outBodyY >= bodyH) pushCurrentPageImage();
+        }
+      }
+
+      // Insert blank pages AFTER this original page
+      insertBlanks(getBlankCount(blanksAfter, p));
+    }
+
+    // Finalize last partial page
+    if (outBodyY > 0) pushCurrentPageImage();
+
+    return { pages: pageImages, w: targetW, h: targetH, orientation };
+  }
+
+  // Preview modal open/close
+  function openPreview(){
+    previewModal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+  function closePreviewModal(){
+    previewModal.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  closePreview.addEventListener('click', closePreviewModal);
+  previewModal.addEventListener('click', (e) => {
+    if (e.target === previewModal) closePreviewModal();
+  });
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && previewModal.style.display === 'flex') closePreviewModal();
+  });
+
+  function renderPreviewPages(pages, w, h){
+    previewStage.innerHTML = '';
+    const maxW = Math.min(900, previewWrap.clientWidth - 30);
+    const scale = Math.min(1, maxW / w);
+
+    pages.forEach((img, idx) => {
+      const pageBox = document.createElement('div');
+      pageBox.className = 'previewPage';
+
+      const lbl = document.createElement('div');
+      lbl.className = 'lbl';
+      lbl.textContent = `Output Page ${idx + 1}`;
+
+      const c = document.createElement('canvas');
+      c.className = 'previewCanvas';
+      c.width = Math.floor(w * scale);
+      c.height = Math.floor(h * scale);
+
+      const cctx = c.getContext('2d');
+      const im = new Image();
+      im.onload = () => {
+        cctx.fillStyle = '#ffffff';
+        cctx.fillRect(0,0,c.width,c.height);
+        cctx.drawImage(im, 0, 0, c.width, c.height);
+      };
+      im.src = img;
+
+      pageBox.appendChild(lbl);
+      pageBox.appendChild(c);
+      previewStage.appendChild(pageBox);
     });
+  }
 
-    (async () => {
-      try {
-        await loadLibraries();
-        setStatus("Libraries loaded. Choose a PDF.");
-        appendLog("Libraries loaded OK.");
-      } catch (e) {
-        setStatus("Library load failed (CDN blocked).");
-        appendLog("ERROR: " + (e?.message || String(e)));
-        appendLog("Fix: check DevTools → Network. If blocked, disable adblock/privacy extensions or try another CDN.");
-        convertBtn.disabled = true;
+  // Preview button
+  previewBtn.addEventListener('click', async () => {
+    if (!pdfDoc) return;
+
+    previewBtn.disabled = true;
+    previewBtn.textContent = 'Rendering...';
+    previewDownload.disabled = true;
+    previewProgress.textContent = 'Rendering preview...';
+    openPreview();
+
+    try{
+      if (!lastOutputPages){
+        const result = await generateEditedPages();
+        lastOutputPages = result;
       }
-    })();
-  </script>
+
+      renderPreviewPages(lastOutputPages.pages, lastOutputPages.w, lastOutputPages.h);
+      previewProgress.textContent = `Done — ${lastOutputPages.pages.length} output pages`;
+      previewDownload.disabled = false;
+    } catch (err){
+      console.error(err);
+      previewProgress.textContent = 'Preview failed. Try lowering margins or increasing quality.';
+      previewStage.innerHTML = `<div class="hint"><b>Preview failed</b><br/>${String(err.message || err)}</div>`;
+    } finally {
+      previewBtn.disabled = false;
+      previewBtn.textContent = 'Preview';
+    }
+  });
+
+  // Download ONLY from Preview
+  previewDownload.addEventListener('click', async () => {
+    if (!pdfDoc) return;
+
+    previewDownload.disabled = true;
+    previewDownload.textContent = 'Building PDF...';
+    previewProgress.textContent = 'Building PDF...';
+
+    try{
+      if (!lastOutputPages){
+        const result = await generateEditedPages();
+        lastOutputPages = result;
+      }
+
+      const { pages, w, h, orientation } = lastOutputPages;
+      const outPdf = new jsPDF({ orientation, unit:'px', format:[w, h], compress:true });
+
+      pages.forEach((img, i) => {
+        if (i > 0) outPdf.addPage([w, h], orientation);
+        outPdf.addImage(img, 'JPEG', 0, 0, w, h, undefined, 'FAST');
+      });
+
+      outPdf.save('edited_previewed.pdf');
+      previewProgress.textContent = 'Downloaded.';
+    } catch (err){
+      console.error(err);
+      previewProgress.textContent = 'Download failed.';
+      alert('Download failed. Try increasing quality or reducing header/footer %.');
+    } finally {
+      previewDownload.disabled = false;
+      previewDownload.textContent = 'Download';
+    }
+  });
+
+  // File input
+  elFile.addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf'){
+      alert('Please upload a PDF file.');
+      return;
+    }
+
+    setMode('draw');
+    previewBtn.disabled = true;
+
+    try{
+      await loadPdfFromFile(file);
+
+      btnPrev.disabled = false;
+      btnNext.disabled = false;
+      btnClearPage.disabled = false;
+      btnClearAll.disabled = false;
+
+      addBlankBefore.disabled = false;
+      addBlankAfter.disabled = false;
+      removeBlankBefore.disabled = true;
+      removeBlankAfter.disabled = true;
+
+      previewBtn.disabled = false;
+
+      metaPages.textContent = String(pdfDoc.numPages);
+      pageStat.textContent = `Page ${pageNum} / ${pdfDoc.numPages}`;
+      updateMetaAndLists();
+    } catch (err){
+      console.error(err);
+      alert('Could not load PDF. Make sure it is a valid PDF file.');
+    }
+  });
+
+  // Init
+  setMode('draw');
+  exportScaleLabel.textContent = `${Number(exportScale.value).toFixed(2)}×`;
+  updateHFLabels();
+  cutList.innerHTML = `<div class="listItem"><span>No PDF loaded</span><span class="mono">—</span></div>`;
+  blankList.innerHTML = `<div class="listItem"><span>No PDF loaded</span><span class="mono">—</span></div>`;
+})();
+</script>
 </body>
 </html>
-
