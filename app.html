@@ -36,7 +36,7 @@
       <div class="muted">Repository</div>
       <div class="mono" id="repoLabel">—</div>
     </div>
-    <button id="logoutBtn">Logout</button>
+    <button id="logoutBtn" type="button">Logout</button>
   </div>
 </div>
 
@@ -87,7 +87,7 @@
 </div>
 
 <script>
-  const SCRIPT_URL = "PASTE_YOUR_NEW_APPS_SCRIPT_EXEC_URL_HERE";
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwHkvf1t8huKPrHGOi8yciP7kLHnTl7QURG2CNYhcVFOhg117gfg3hqOFOe73FB5iGrwQ/exec";
   const LOGIN_URL  = location.origin + location.pathname.replace("app.html", "login.html");
 
   const statusEl = document.getElementById("status");
@@ -115,28 +115,30 @@
   if (params.get("session")) {
     session = params.get("session");
     localStorage.setItem("pdfVaultSession", session);
+    // clean URL
+    history.replaceState({}, "", location.pathname);
   }
   if (params.get("msg")) {
     let msg = params.get("msg");
     if (params.get("uploaded")) msg += "\nUploaded: " + params.get("uploaded");
     if (params.get("raw")) msg += "\nRaw: " + params.get("raw");
     setStatus(msg);
+    history.replaceState({}, "", location.pathname);
   } else {
     setStatus("Ready.");
   }
 
   if (!session) {
-    // Not logged in -> go to login page
     location.replace(LOGIN_URL + "?msg=" + encodeURIComponent("Please log in."));
   }
 
-  // JSONP helper for listing/config
+  // JSONP helper
   function jsonp(url, prefix){
     return new Promise((resolve, reject) => {
       const cb = `${prefix}_${Math.random().toString(16).slice(2)}`;
       window[cb] = (data) => { delete window[cb]; script.remove(); resolve(data); };
       const script = document.createElement("script");
-      script.src = url + (url.includes("?") ? "&" : "?") + "callback=" + encodeURIComponent(cb);
+      script.src = url + (url.indexOf("?") !== -1 ? "&" : "?") + "callback=" + encodeURIComponent(cb);
       script.onerror = () => { delete window[cb]; script.remove(); reject(new Error("JSONP failed.")); };
       document.body.appendChild(script);
     });
@@ -164,7 +166,7 @@
         <td><strong>${esc(f.name)}</strong><div class="muted mono">${esc(f.path)}</div></td>
         <td><span class="pill">${niceBytes(f.size)}</span></td>
         <td><div class="mono">${esc(f.raw_url)}</div></td>
-        <td><button type="button" data-url="${esc(f.raw_url)}">Download</button></td>
+        <td><button type="button">Download</button></td>
       `;
       tr.querySelector("button").onclick = () => window.open(f.raw_url, "_blank", "noopener,noreferrer");
       tbody.appendChild(tr);
@@ -209,7 +211,6 @@
     setStatus("Reading file…");
     const dataUrl = await fileToDataUrl(file);
 
-    // Fill hidden fields, then submit POST to Apps Script (it will redirect back)
     document.getElementById("uploadForm").action = SCRIPT_URL;
     document.getElementById("up_session").value = session;
     document.getElementById("up_returnUrl").value = location.origin + location.pathname; // app.html
@@ -220,7 +221,6 @@
     document.getElementById("uploadForm").submit();
   };
 
-  // initial load
   loadConfig().catch(e => setStatus("ERROR: " + e.message));
 </script>
 </body>
