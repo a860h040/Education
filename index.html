@@ -711,7 +711,6 @@ function topBottomScale(angleDeg){
   return clamp(scale, 0.5, 1.0);
 }
 
-/* ✅ Auto size for iPhone + big monitors (uses real safe area) */
 function computeSafeGeometry(fileCount){
   const r = scene.getBoundingClientRect();
   const w = r.width, h = r.height;
@@ -731,14 +730,20 @@ function computeSafeGeometry(fileCount){
   const availW = Math.max(240, (w - pad) - rightReserved - pad);
   const availH = Math.max(240, (h - topReserved) - pad);
 
-  // ✅ scale factor grows on large screens, shrinks on phones
-  const scale = clamp(0.22 + (Math.min(availW, availH) / 900) * 0.16, isPhone ? 0.20 : 0.26, 0.42);
+  // ✅ ONE STEP SMALLER (change 0.85 -> smaller/bigger)
+  const SIZE = 0.85;
+
+  const scale = clamp(
+    (0.22 + (Math.min(availW, availH) / 900) * 0.16) * SIZE,
+    (isPhone ? 0.20 : 0.26) * SIZE,
+    0.42 * SIZE
+  );
 
   const R  = Math.min(availW, availH) * scale;
   const r0 = R * 1.06;
 
-  const maxToEdge = Math.min(availW, availH) * (isPhone ? 0.55 : 0.62);
-  const baseLen = clamp(maxToEdge, isPhone ? 140 : 220, isPhone ? 310 : 520);
+  const maxToEdge = Math.min(availW, availH) * (isPhone ? 0.55 : 0.62) * SIZE;
+  const baseLen = clamp(maxToEdge, (isPhone ? 140 : 220) * SIZE, (isPhone ? 310 : 520) * SIZE);
   const jitter = baseLen * 0.18;
 
   const crowd = clamp(fileCount / 22, 0, 1);
@@ -746,6 +751,7 @@ function computeSafeGeometry(fileCount){
 
   return { R, r0, baseLen: baseLen2, jitter };
 }
+
 
 function buildBranches(files){
   branchesEl.innerHTML = "";
