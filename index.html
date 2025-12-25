@@ -31,12 +31,8 @@
     <div class="warn">
       <div><strong>Important limitations</strong></div>
       <div class="muted">
-        This runs in the browser and extracts text from the PDF to rebuild a Word file.
-        It will not perfectly preserve layout (tables/columns/fonts). Scanned PDFs need OCR (not included).
-      </div>
-      <div class="muted" style="margin-top:6px">
-        If you run this in <b>W3Schools Tryit</b>, CDNs may be blocked and you may get <code>pdfjsLib is not defined</code>.
-        Use GitHub Pages or a normal hosted page.
+        Browser-side conversion extracts text and rebuilds a Word file. Layout won’t be perfect (tables/columns/fonts).
+        Scanned PDFs need OCR (not included).
       </div>
     </div>
 
@@ -75,25 +71,21 @@
       });
     }
 
+    // ✅ Use pdfjs-dist LEGACY build (guarantees window.pdfjsLib)
     async function loadLibraries() {
-      // PDF.js (UMD global: pdfjsLib)
-      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.js");
+      await loadScript("https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/legacy/build/pdf.min.js");
       if (!window.pdfjsLib) throw new Error("pdfjsLib did not load (PDF.js blocked?)");
 
-      // PDF.js worker
       window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.worker.min.js";
+        "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/legacy/build/pdf.worker.min.js";
 
-      // docx (UMD global: docx)
       await loadScript("https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js");
       if (!window.docx) throw new Error("docx library did not load (blocked?)");
 
-      // FileSaver (global: saveAs)
       await loadScript("https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js");
       if (!window.saveAs) throw new Error("FileSaver did not load (blocked?)");
     }
 
-    // Group PDF.js text items into lines (simple heuristic)
     function itemsToLines(items) {
       const normalized = items
         .filter(it => it.str && it.str.trim().length)
@@ -135,7 +127,6 @@
         line = line.replace(/\s+/g, " ").trim();
         if (line) lines.push(line);
       }
-
       return lines;
     }
 
@@ -145,6 +136,9 @@
       if (pdfInput.files && pdfInput.files[0]) {
         setStatus(`Selected: ${pdfInput.files[0].name}`);
         lastName = pdfInput.files[0].name.replace(/\.pdf$/i, "") + ".docx";
+        convertBtn.disabled = false;
+      } else {
+        convertBtn.disabled = true;
       }
     });
 
@@ -156,6 +150,15 @@
     convertBtn.addEventListener("click", async () => {
       const file = pdfInput.files?.[0];
       if (!file) return;
+
+      // Guard (prevents "pdfjsLib is not defined" ever happening)
+      if (!window.pdfjsLib) {
+        setStatus("PDF.js not loaded. Check if a browser extension/CDN block is preventing scripts.");
+        appendLog("ERROR: pdfjsLib missing. Open DevTools → Network and verify pdf.min.js loaded (status 200).");
+        return;
+      }
+
+      const pdfjsLib = window.pdfjsLib; // safe local alias
 
       convertBtn.disabled = true;
       downloadBtn.disabled = true;
@@ -218,23 +221,19 @@
       }
     });
 
-    // Boot: load libs, then enable convert (once a file is picked)
     (async () => {
       try {
         await loadLibraries();
         setStatus("Libraries loaded. Choose a PDF.");
         appendLog("Libraries loaded OK.");
-        // Enable convert button only when a file is selected
-        convertBtn.disabled = !(pdfInput.files && pdfInput.files[0]);
-        pdfInput.addEventListener("change", () => {
-          convertBtn.disabled = !(pdfInput.files && pdfInput.files[0]);
-        });
       } catch (e) {
-        setStatus("Library load failed. This environment may block CDNs.");
+        setStatus("Library load failed (CDN blocked).");
         appendLog("ERROR: " + (e?.message || String(e)));
-        appendLog("Fix: run this on GitHub Pages / normal hosting (not W3Schools Tryit).");
+        appendLog("Fix: check DevTools → Network. If blocked, disable adblock/privacy extensions or try another CDN.");
+        convertBtn.disabled = true;
       }
     })();
   </script>
 </body>
 </html>
+
