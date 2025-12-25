@@ -29,8 +29,8 @@
 <div class="muted">Front-end: GitHub Pages. Backend: Apps Script (token + login stored in Google Sheet).</div>
 
 <script>
-  // ✅ PUT YOUR /exec URL HERE:
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqrmy3Avl9PfGj4Ni3iN2Rqylkr6fI2FajvJax8CytMGpOpv2rBjy_ppWx6Ztx2oE6kA/exec";
+  // ✅ replace with your newest /exec URL after redeploy
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbztzNiKz3FurICloFczVB7QAtCc4S_6l0jpctvE9MrUk9jT5NMVIcvKipHjHtLN7BALDw/exec";
 </script>
 
 <div class="card" id="loginCard">
@@ -52,7 +52,7 @@
 
 <div id="app" class="hidden">
   <div class="card">
-    <div class="row" style="justify-contet:space-between;align-items:center;">
+    <div class="row" style="justify-content:space-between;align-items:center;">
       <div>
         <div class="muted">Repository:</div>
         <div class="mono" id="repoLabel">Loading…</div>
@@ -109,13 +109,10 @@
   <div id="status" class="status muted">Ready.</div>
 </div>
 
-<!-- ✅ Off-screen iframe (NOT display:none) -->
-<iframe name="apiFrame" id="apiFrame"
-  style="position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;border:0;"></iframe>
-
-<!-- Hidden form used for POST -->
-<form id="apiForm" method="POST" target="apiFrame" class="hidden">
+<!-- Hidden form used for POST to Apps Script (targets popup) -->
+<form id="apiForm" method="POST" class="hidden">
   <input name="action"  id="f_action">
+  <input name="nonce"   id="f_nonce">
   <input name="session" id="f_session">
   <input name="username" id="f_username">
   <input name="password" id="f_password">
@@ -133,6 +130,7 @@
     $("app").classList.toggle("hidden", !on);
     $("loginCard").classList.toggle("hidden", on);
   }
+
   function niceBytes(n){
     n = Number(n || 0);
     if (!n) return "0 B";
@@ -159,7 +157,7 @@
       script.onerror = () => {
         delete window[cb];
         script.remove();
-        reject(new Error("JSONP failed (script error / blocked)."));
+        reject(new Error("JSONP failed (blocked or wrong URL)."));
       };
       document.body.appendChild(script);
     });
@@ -227,13 +225,21 @@
     }
   }
 
-  // ---------- POST via hidden iframe + postMessage ----------
-  function postForm(action, fields){
+  // ---------- POST via POPUP + postMessage ----------
+  function postPopup(action, fields){
     return new Promise((resolve, reject) => {
+      const nonce = "n_" + Math.random().toString(16).slice(2) + "_" + Date.now();
+
+      const popupName = "apiPopup_" + Date.now();
+      const popup = window.open("about:blank", popupName, "width=520,height=640");
+      if (!popup) return reject(new Error("Popup blocked. Allow popups for this site."));
+
       const form = $("apiForm");
       form.action = SCRIPT_URL;
+      form.target = popupName;
 
       $("f_action").value = action;
+      $("f_nonce").value = nonce;
       $("f_session").value = fields.session || "";
       $("f_username").value = fields.username || "";
       $("f_password").value = fields.password || "";
@@ -242,15 +248,17 @@
 
       const timeout = setTimeout(() => {
         window.removeEventListener("message", handler);
-        reject(new Error("No response from Apps Script (deployment access / iframe blocked)."));
-      }, 12000);
+        try { popup.close(); } catch(e){}
+        reject(new Error("No response from Apps Script. (Is the web app authorized + set to Anyone?)"));
+      }, 15000);
 
       const handler = (ev) => {
         const msg = ev.data || {};
-        // Only accept the matching action response
-        if (!msg || msg.type !== action) return;
+        // Only accept matching action + nonce
+        if (!msg || msg.type !== action || msg.nonce !== nonce) return;
         clearTimeout(timeout);
         window.removeEventListener("message", handler);
+        try { popup.close(); } catch(e){}
         msg.ok ? resolve(msg) : reject(new Error(msg.message || "Request failed"));
       };
 
@@ -268,7 +276,7 @@
     setStatus("Logging in…");
 
     try{
-      const res = await postForm("login", { username:u, password:p });
+      const res = await postPopup("login", { username:u, password:p });
       session = res.session;
       localStorage.setItem("pdfVaultSession", session);
       showApp(true);
@@ -291,7 +299,7 @@
   async function doLogout(){
     const s = session;
     forceLogout();
-    try { await postForm("logout", { session:s }); } catch {}
+    try { await postPopup("logout", { session:s }); } catch {}
     setStatus("Logged out.");
   }
 
@@ -319,11 +327,7 @@
       const dataUrl = await fileToDataUrl(file);
       setStatus("Uploading…");
 
-      const res = await postForm("upload", {
-        session,
-        filename: file.name,
-        base64: dataUrl
-      });
+      const res = await postPopup("upload", { session, filename: file.name, base64: dataUrl });
 
       setStatus(`✅ Uploaded:\n${res.name}\n\nRaw link:\n${res.raw_url}`);
       $("file").value = "";
