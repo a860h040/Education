@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tutorial Videos</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Arial,sans-serif;margin:24px;max-width:980px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+    button{border:1px solid #ddd;background:#fff;padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:600}
+    button:hover{background:#f7f7f7}
+    button.active{border-color:#000;box-shadow:0 1px 0 rgba(0,0,0,.08)}
+    .card{border:1px solid #e5e5e5;border-radius:16px;padding:14px}
+    .title{font-size:14px;color:#444;margin:0 0 10px}
+    video{width:100%;height:auto;border-radius:14px;background:#000}
+  </style>
+</head>
+<body>
+  <h1>Tutorial Player</h1>
+
+  <div class="row">
+    <button id="btn1" onclick="loadTutorial(1)">Tutorial 1</button>
+    <button id="btn2" onclick="loadTutorial(2)">Tutorial 2</button>
+    <button id="btn3" onclick="loadTutorial(3)">Tutorial 3</button>
+  </div>
+
+  <div class="card">
+    <p class="title" id="nowPlaying">Select a tutorial to play.</p>
+    <video id="player" controls playsinline preload="metadata">
+      Sorry, your browser does not support the video tag.
+    </video>
+  </div>
+
+  <script>
+    // ✅ Tutorial 1 uses the GitHub "raw" URL pattern and file name "2.mp4"
+    // Change: YOUR_USER, YOUR_REPO, main, and the folder name (videos/) if needed.
+    const tutorials = {
+      1: {
+        title: "Tutorial 1",
+        url: "https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/videos/2.mp4"
+      },
+      2: { title: "Tutorial 2", url: "" },
+      3: { title: "Tutorial 3", url: "" }
+    };
+
+    function setActive(n){
+      [1,2,3].forEach(i=>{
+        document.getElementById("btn"+i).classList.toggle("active", i===n);
+      });
+    }
+
+    function loadTutorial(n){
+      const t = tutorials[n];
+      if(!t || !t.url){
+        alert("Tutorial " + n + " URL is not set yet.");
+        return;
+      }
+
+      const player = document.getElementById("player");
+      document.getElementById("nowPlaying").textContent = "Now playing: " + t.title;
+
+      setActive(n);
+
+      player.pause();
+      player.removeAttribute("src");
+      player.load();
+
+      player.src = t.url;
+      player.load();
+      player.play().catch(()=>{});
+    }
+  </script>
+</body>
+</html>
