@@ -19,6 +19,9 @@
       --overlay: rgba(17,24,39,.55);
       --cardBg: rgba(255,255,255,.92);
       --cardBorder: rgba(17,24,39,.10);
+
+      /* ✅ will be set by JS dynamically */
+      --topbarH: 92px;
     }
     *{box-sizing:border-box}
     body{
@@ -26,7 +29,6 @@
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       background: var(--bg);
       color: var(--ink);
-      
       overflow:hidden;
       min-height:100vh;
     }
@@ -90,17 +92,17 @@
       opacity:.9;
     }
 
+    /* ✅ side panel now sits BELOW real topbar height (no overlap) */
     .sidePanel{
       position:fixed;
-      top:14px;
       right:14px;
+      top: calc(14px + var(--topbarH, 92px));
       z-index:28;
       pointer-events:none;
       display:flex;
       flex-direction:column;
       align-items:flex-end;
       gap:10px;
-      margin-top: 96px;
     }
     .panelCard{
       pointer-events:auto;
@@ -230,7 +232,6 @@
       opacity:.9;
     }
 
-    /* Pills at branch ends */
     .branch .node{
       position:absolute;
       left: calc(var(--lenShort) - 18px);
@@ -429,7 +430,7 @@
     }
 
     @media (max-width: 780px){
-      .sidePanel{ right:auto; left:14px; align-items:flex-start; margin-top: 76px; }
+      .sidePanel{ right:auto; left:14px; align-items:flex-start; }
       .panelCard{width:min(420px, calc(100vw - 28px))}
       .row{justify-content:flex-start}
       .modalTitle{max-width: 100%}
@@ -461,6 +462,7 @@
     </div>
     <div class="actions">
       <a class="btn" href="./index2.html"><span class="miniDot"></span>Edit</a>
+      <a class="btn" href="./index3.html"><span class="miniDot"></span>Tutorials</a>
       <a class="btn"
          href="https://script.google.com/macros/s/AKfycbz1o39V5VcbA5x4gzxA__uLAGKalQJOLqbyStGoFBML5VK5A7exuGYNbyD4S8ApIfvEXQ/exec"
          target="_blank" rel="noopener noreferrer"><span class="miniDot"></span>Settings</a>
@@ -477,7 +479,7 @@
     </div>
   </div>
 
-  <!-- ✅ Preview modal (opens BEFORE download) -->
+  <!-- ✅ Preview modal -->
   <div class="modal" id="modal" aria-hidden="true">
     <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modalHead">
@@ -492,7 +494,6 @@
         </div>
       </div>
       <div class="modalBody">
-        <!-- Using PDF.js viewer hosted by Mozilla (no libs needed) -->
         <iframe id="viewer" title="PDF Preview"></iframe>
       </div>
       <div class="modalHint">
@@ -510,7 +511,7 @@ const FOLDER = "pdfs";
 const API = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(FOLDER)}?ref=${encodeURIComponent(BRANCH)}`;
 const TEXTURE_URL = "./assets/roof.png";
 
-/* PDF.js viewer (hosted). If blocked by your browser, fallback to native iframe src. */
+/* PDF.js viewer hosted by Mozilla */
 const PDFJS_VIEWER = "https://mozilla.github.io/pdf.js/web/viewer.html?file=";
 
 const scene = document.getElementById("scene");
@@ -541,7 +542,7 @@ let rafId = 0;
 let texImg = null;
 let texPattern = null;
 
-/* pills swimming INSIDE the center blob */
+/* pills swimming inside center blob */
 let swimPills = [];
 let lastFrameT = 0;
 
@@ -552,6 +553,15 @@ function hashStr(str){
   for (let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
   return ((h>>>0) % 100000) / 100000;
 }
+
+/* ✅ measure topbar and set CSS var so sidePanel never overlaps */
+function updateSidePanelOffset(){
+  const topbar = document.querySelector(".topbar");
+  if (!topbar) return;
+  const h = topbar.getBoundingClientRect().height;
+  document.documentElement.style.setProperty("--topbarH", `${Math.ceil(h) + 10}px`);
+}
+
 function resizeCanvas(c){
   const r = scene.getBoundingClientRect();
   const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
@@ -570,7 +580,7 @@ function displayName(full){
   return noExt.trim();
 }
 
-/* ✅ PREVIEW instead of instant download */
+/* ✅ PREVIEW modal */
 function previewFile(url, niceName){
   currentPreviewUrl = url;
   currentPreviewName = niceName;
@@ -578,34 +588,25 @@ function previewFile(url, niceName){
   modalTitle.textContent = niceName || "Preview";
   modalLink.textContent = url;
 
-  // Download button uses direct URL
   downloadBtn.href = url;
   downloadBtn.setAttribute("download", (niceName ? niceName.replace(/[\\/:*?"<>|]/g,"-") : "file") + ".pdf");
 
-  // Prefer PDF.js viewer (better preview), fallback if blocked
   const encoded = encodeURIComponent(url);
   const viewerUrl = PDFJS_VIEWER + encoded;
-
   viewer.src = viewerUrl;
 
-  // if viewer fails (some browsers block), fallback after short delay
   const fallbackTimer = setTimeout(() => {
-    // If still at about:blank or not loaded, fallback
     try{
       if (!viewer.contentWindow || viewer.contentWindow.location.href === "about:blank"){
         viewer.src = url;
       }
     }catch(e){
-      // cross-origin; just set fallback
       viewer.src = url;
     }
   }, 900);
 
   openNewBtn.onclick = () => window.open(url, "_blank", "noopener,noreferrer");
-
   showModal(true);
-
-  // clear timer when modal closes
   modal._fallbackTimer = fallbackTimer;
 }
 
@@ -746,9 +747,7 @@ function buildBranches(files){
     const hitEl  = document.createElement("div"); hitEl.className  = "hit"; hitEl.title = nice;
     const tip    = document.createElement("div"); tip.className    = "tip"; tip.textContent = nice;
 
-    // ✅ Click should open PREVIEW modal
     const openPreview = () => previewFile(url, nice);
-
     hitEl.addEventListener("click", openPreview);
     nodeEl.addEventListener("click", openPreview);
     hitEl.addEventListener("touchstart", (e)=>{ e.preventDefault(); openPreview(); }, {passive:false});
@@ -784,7 +783,7 @@ async function load(){
       .filter(x => x && x.type === "file" && (x.name||"").toLowerCase().endsWith(".pdf"))
       .map(x => ({
         name: x.name,
-        download_url: x.download_url, // direct
+        download_url: x.download_url,
         raw_url: `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${x.path}`
       }))
       .sort((a,b)=> displayName(a.name).localeCompare(displayName(b.name)));
@@ -804,7 +803,7 @@ function applySearch(){
   buildBranches(shownFiles);
 }
 
-/* --------- center “swim pills” helpers ---------- */
+/* --------- center swim pills ---------- */
 function rand(a,b){ return a + Math.random()*(b-a); }
 
 function resetSwimPills(R){
@@ -847,7 +846,6 @@ function drawSwimPill(ctx, p){
   ctx.translate(p.x, p.y);
   ctx.rotate(p.rot);
 
-  // shadow
   ctx.save();
   ctx.globalAlpha = 0.12;
   ctx.filter = "blur(3px)";
@@ -1009,7 +1007,6 @@ function animate(){
       ctx.closePath();
     }
 
-    // glow
     ctxFx.save();
     blobPath(ctxFx);
     ctxFx.shadowColor = "rgba(17,24,39,0.12)";
@@ -1018,7 +1015,6 @@ function animate(){
     ctxFx.fill();
     ctxFx.restore();
 
-    // wall ring
     ctxFx.save();
     blobPath(ctxFx);
     ctxFx.lineJoin = "round";
@@ -1030,7 +1026,6 @@ function animate(){
     ctxFx.stroke();
     ctxFx.restore();
 
-    // inner fill + clip
     ctxFx.save();
     blobPath(ctxFx);
     ctxFx.clip();
@@ -1059,7 +1054,6 @@ function animate(){
 
     ctxFx.restore();
 
-    // outline
     ctxFx.save();
     blobPath(ctxFx);
     ctxFx.strokeStyle = "rgba(17,24,39,0.78)";
@@ -1067,7 +1061,6 @@ function animate(){
     ctxFx.stroke();
     ctxFx.restore();
 
-    // branch lines
     ctxLn.save();
     ctxLn.lineWidth = 1;
     ctxLn.lineCap = "round";
@@ -1119,18 +1112,28 @@ function animate(){
   rafId = requestAnimationFrame(frame);
 }
 
-document.getElementById("reload").addEventListener("click", load);
+document.getElementById("reload").addEventListener("click", async () => {
+  await load();
+  updateSidePanelOffset();
+  requestAnimationFrame(updateSidePanelOffset);
+});
 q.addEventListener("input", applySearch);
 
 window.addEventListener("resize", () => {
+  updateSidePanelOffset();
   swimPills = [];
   applySearch();
   animate();
 });
 
 (async () => {
-  await loadTexture(); // ok if missing
+  await loadTexture();
   await load();
+
+  /* ✅ set panel offset after buttons wrap/layout */
+  updateSidePanelOffset();
+  requestAnimationFrame(updateSidePanelOffset);
+
   animate();
 })();
 </script>
