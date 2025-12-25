@@ -731,7 +731,7 @@ function computeSafeGeometry(fileCount){
   const availH = Math.max(240, (h - topReserved) - pad);
 
   // ✅ ONE STEP SMALLER (change 0.85 -> smaller/bigger)
-  const SIZE = 0.85;
+  const SIZE = 0.90;
 
   const scale = clamp(
     (0.22 + (Math.min(availW, availH) / 900) * 0.16) * SIZE,
