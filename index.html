@@ -1,53 +1,62 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>GitHub PDF Vault</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>PDF Vault</title>
   <style>
     body{font-family:system-ui,Segoe UI,Arial,sans-serif;margin:24px;max-width:980px}
-    h1{margin:0 0 12px}
-    .row{display:flex;gap:12px;flex-wrap:wrap}
     .card{border:1px solid #ddd;border-radius:12px;padding:14px;margin:12px 0}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
     label{display:block;font-size:13px;color:#333;margin-bottom:4px}
     input,button{font:inherit;padding:10px;border:1px solid #ccc;border-radius:10px}
-    input[type="file"]{padding:8px}
+    input[type=file]{padding:8px}
     button{cursor:pointer}
     button.primary{border:none;background:#111;color:#fff}
     button:disabled{opacity:.5;cursor:not-allowed}
-    small{color:#666}
     .status{white-space:pre-wrap;background:#fafafa;border:1px dashed #ddd;border-radius:12px;padding:10px;min-height:54px}
     table{width:100%;border-collapse:collapse}
     th,td{border-bottom:1px solid #eee;padding:10px;text-align:left;vertical-align:top}
     th{font-size:13px;color:#444}
-    .pill{display:inline-block;padding:2px 8px;border:1px solid #ddd;border-radius:999px;font-size:12px;color:#444}
+    .mono{font-family:ui-monospace,Menlo,Consolas,monospace;word-break:break-all}
     .muted{color:#666;font-size:13px}
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
-    .actions{display:flex;gap:8px;flex-wrap:wrap}
-    .repoLine{font-size:13px;color:#444}
-    .repoLine strong{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+    .pill{display:inline-block;padding:2px 8px;border:1px solid #ddd;border-radius:999px;font-size:12px;color:#444}
+    .hidden{display:none}
   </style>
 </head>
 <body>
-  <h1>GitHub PDF Vault</h1>
-  <div class="muted">
-    Upload PDFs into your GitHub repo folder, then list/search and download later.
-  </div>
+<h1>PDF Vault</h1>
+<div class="muted">Front-end: GitHub Pages. Backend: Apps Script (token + auth stored in Google Sheet).</div>
 
-  <div class="card">
-    <h3 style="margin:0 0 10px;">Settings</h3>
+<script>
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzlZnHcT3qG9-vkc75RI_NdHhW92T5pdGIEFMGfhTOzogX97zOykSV9pAageMJ9YusSjA/exec";
+</script>
 
-    <div class="repoLine">
-      Repository: <strong id="repoLabel"></strong>
-      <span class="muted">· folder:</span> <strong id="folderLabel"></strong>
+<div class="card" id="loginCard">
+  <h3 style="margin:0 0 10px;">Login</h3>
+  <div class="row">
+    <div style="flex:1;min-width:240px;">
+      <label>Username</label>
+      <input id="username" autocomplete="username">
     </div>
+    <div style="flex:1;min-width:240px;">
+      <label>Password</label>
+      <input id="password" type="password" autocomplete="current-password">
+    </div>
+    <div style="align-self:end;">
+      <button class="primary" id="loginBtn">Login</button>
+    </div>
+  </div>
+</div>
 
-    <div class="row" style="margin-top:12px;">
-      <div style="flex:1;min-width:320px;">
-        <label>GitHub Token (required for upload)</label>
-        <input id="token" type="password" placeholder="Fine-grained PAT (Contents: Read & Write)" />
-        <small>Don’t hardcode tokens into GitHub Pages. Paste it here when you need to upload.</small>
+<div id="app" class="hidden">
+  <div class="card">
+    <div class="row" style="justify-content:space-between;align-items:center;">
+      <div>
+        <div class="muted">Repository:</div>
+        <div class="mono" id="repoLabel">Loading…</div>
       </div>
+      <button id="logoutBtn">Logout</button>
     </div>
   </div>
 
@@ -56,10 +65,10 @@
     <div class="row">
       <div style="flex:1;min-width:320px;">
         <label>Select PDF</label>
-        <input id="file" type="file" accept="application/pdf" />
+        <input id="file" type="file" accept="application/pdf">
       </div>
       <div style="align-self:end;">
-        <button class="primary" id="uploadBtn">Upload to GitHub</button>
+        <button class="primary" id="uploadBtn">Upload</button>
       </div>
     </div>
   </div>
@@ -69,11 +78,10 @@
     <div class="row">
       <div style="flex:1;min-width:260px;">
         <label>Search by filename</label>
-        <input id="search" placeholder="type part of a filename…" />
+        <input id="search" placeholder="type part of a filename…">
       </div>
-      <div style="align-self:end;" class="actions">
+      <div style="align-self:end;">
         <button id="refreshBtn">List PDFs</button>
-        <button id="clearBtn">Clear</button>
       </div>
     </div>
 
@@ -84,230 +92,99 @@
             <th>File</th>
             <th>Size</th>
             <th>Raw link</th>
-            <th>Actions</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody id="tbody">
-          <tr><td colspan="4" class="muted">No files listed yet. Click “List PDFs”.</td></tr>
+          <tr><td colspan="4" class="muted">Click “List PDFs”.</td></tr>
         </tbody>
       </table>
     </div>
   </div>
+</div>
 
-  <div class="card">
-    <h3 style="margin:0 0 10px;">Status</h3>
-    <div id="status" class="status muted">Ready.</div>
-  </div>
+<div class="card">
+  <h3 style="margin:0 0 10px;">Status</h3>
+  <div id="status" class="status muted">Ready.</div>
+</div>
+
+<!-- Hidden iframe for POST (login/upload/logout) -->
+<iframe name="apiFrame" id="apiFrame" class="hidden"></iframe>
+
+<!-- Hidden form used for POST to Apps Script -->
+<form id="apiForm" method="POST" target="apiFrame" class="hidden">
+  <input name="action"  id="f_action">
+  <input name="session" id="f_session">
+  <input name="username" id="f_username">
+  <input name="password" id="f_password">
+  <input name="filename" id="f_filename">
+  <textarea name="base64" id="f_base64"></textarea>
+</form>
 
 <script>
-(() => {
-  // ✅ Prefilled repo info (no user input needed)
-  const DEFAULT_OWNER  = "a860h040";
-  const DEFAULT_REPO   = "Education";
-  const DEFAULT_BRANCH = "main";
-  const DEFAULT_FOLDER = "pdfs";
-
   const $ = (id) => document.getElementById(id);
+  let session = localStorage.getItem("pdfVaultSession") || "";
   let lastFiles = [];
 
-  $("repoLabel").textContent = `${DEFAULT_OWNER}/${DEFAULT_REPO}@${DEFAULT_BRANCH}`;
-  $("folderLabel").textContent = DEFAULT_FOLDER;
-
-  function setStatus(msg) { $("status").textContent = msg; }
-
-  function cfg() {
-    const token = $("token").value.trim();
-    return {
-      owner: DEFAULT_OWNER,
-      repo: DEFAULT_REPO,
-      branch: DEFAULT_BRANCH,
-      folder: DEFAULT_FOLDER,
-      token
-    };
+  function setStatus(m){ $("status").textContent = m; }
+  function showApp(on){
+    $("app").classList.toggle("hidden", !on);
+    $("loginCard").classList.toggle("hidden", on);
   }
-
-  function encodePath(path) {
-    return path.split("/").map(encodeURIComponent).join("/");
-  }
-
-  async function fileToBase64(file) {
-    const buf = await file.arrayBuffer();
-    let binary = "";
-    const bytes = new Uint8Array(buf);
-    const chunkSize = 0x8000;
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-    }
-    return btoa(binary);
-  }
-
-  async function ghFetch(url, { token, method = "GET", headers = {}, body } = {}) {
-    const h = {
-      "Accept": "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-      ...headers
-    };
-    if (token) h["Authorization"] = `Bearer ${token}`;
-    const res = await fetch(url, { method, headers: h, body });
-    const text = await res.text();
-    let data;
-    try { data = text ? JSON.parse(text) : null; } catch { data = text; }
-    if (!res.ok) {
-      const msg = (data && data.message) ? data.message : res.statusText;
-      throw new Error(`GitHub API error (${res.status}): ${msg}`);
-    }
-    return data;
-  }
-
-  async function getExistingFileSha({ owner, repo, branch, token, path }) {
-    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodePath(path)}?ref=${encodeURIComponent(branch)}`;
-    try {
-      const data = await ghFetch(url, { token });
-      if (data && data.sha && data.type === "file") return data.sha;
-      return null;
-    } catch (e) {
-      if (String(e.message).includes("(404)")) return null;
-      return null;
-    }
-  }
-
-  function niceBytes(n) {
+  function niceBytes(n){
+    n = Number(n || 0);
     if (!n) return "0 B";
-    const k = 1024;
-    const sizes = ["B","KB","MB","GB"];
-    const i = Math.floor(Math.log(n) / Math.log(k));
-    return `${(n / Math.pow(k,i)).toFixed(i ? 2 : 0)} ${sizes[i]}`;
+    const k=1024, sizes=["B","KB","MB","GB"];
+    const i=Math.floor(Math.log(n)/Math.log(k));
+    return (n/Math.pow(k,i)).toFixed(i?2:0) + " " + sizes[i];
+  }
+  function esc(s){
+    return String(s||"").replaceAll("&","&amp;").replaceAll("<","&lt;")
+      .replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
   }
 
-  function sanitizeFilename(name) {
-    return name.replace(/[^\w.\-() ]+/g, "_").replace(/\s+/g, " ").trim();
-  }
-
-  function escapeHtml(s) {
-    return String(s || "")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
-  }
-
-  async function uploadPDF() {
-    const { owner, repo, branch, folder, token } = cfg();
-    if (!token) throw new Error("Token is required for upload.");
-
-    const file = $("file").files[0];
-    if (!file) throw new Error("Select a PDF first.");
-    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
-      throw new Error("Please choose a PDF file.");
-    }
-
-    setStatus("Reading PDF…");
-    $("uploadBtn").disabled = true;
-
-    const base64 = await fileToBase64(file);
-
-    const ts = new Date().toISOString().replace(/[:.]/g, "-");
-    const rnd = Math.random().toString(16).slice(2, 10);
-    const safeName = sanitizeFilename(file.name || "file.pdf");
-    const filename = `${ts}_${rnd}_${safeName}`;
-    const path = `${folder}/${filename}`;
-
-    setStatus(`Uploading to ${owner}/${repo}@${branch}\nPath: ${path}\nCreating a commit…`);
-
-    const sha = await getExistingFileSha({ owner, repo, branch, token, path });
-
-    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodePath(path)}`;
-    const payload = { message: `Upload PDF: ${safeName}`, content: base64, branch };
-    if (sha) payload.sha = sha;
-
-    await ghFetch(url, { token, method: "PUT", body: JSON.stringify(payload) });
-
-    const rawLink = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
-    setStatus(`✅ Uploaded!\nSaved as: ${filename}\nRaw link:\n${rawLink}`);
-    $("file").value = "";
-    await listPDFs();
-  }
-
-  async function listPDFs() {
-    const { owner, repo, branch, folder, token } = cfg();
-
-    setStatus(`Loading list from ${owner}/${repo}@${branch}\nFolder: ${folder} …`);
-    $("refreshBtn").disabled = true;
-
-    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodePath(folder)}?ref=${encodeURIComponent(branch)}`;
-    const data = await ghFetch(url, { token });
-
-    const items = Array.isArray(data) ? data : [];
-    const pdfs = items
-      .filter(x => x && x.type === "file" && (x.name || "").toLowerCase().endsWith(".pdf"))
-      .map(x => ({
-        name: x.name,
-        path: x.path,
-        size: x.size || 0,
-        raw_url: `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${x.path}`
-      }))
-      .sort((a,b) => b.name.localeCompare(a.name));
-
-    lastFiles = pdfs;
-    renderTable(pdfs);
-    setStatus(`✅ Listed ${pdfs.length} PDF(s). Use search to filter.`);
-    $("refreshBtn").disabled = false;
-  }
-
-  async function downloadViaAPI(item) {
-    const { owner, repo, branch, token } = cfg();
-
-    // If no token, open raw link (works for public repos)
-    if (!token) {
-      window.open(item.raw_url, "_blank", "noopener,noreferrer");
-      return;
-    }
-
-    setStatus(`Downloading:\n${item.path}`);
-    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodePath(item.path)}?ref=${encodeURIComponent(branch)}`;
-    const res = await fetch(url, {
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Accept": "application/vnd.github.raw",
-        "X-GitHub-Api-Version": "2022-11-28"
-      }
+  // ---------- JSONP (GET config/list) ----------
+  function jsonp(url, callbackName){
+    return new Promise((resolve, reject) => {
+      const cb = callbackName + "_" + Math.random().toString(16).slice(2);
+      window[cb] = (data) => {
+        delete window[cb];
+        script.remove();
+        resolve(data);
+      };
+      const script = document.createElement("script");
+      script.src = url + (url.includes("?") ? "&" : "?") + "callback=" + encodeURIComponent(cb);
+      script.onerror = () => {
+        delete window[cb];
+        script.remove();
+        reject(new Error("JSONP failed."));
+      };
+      document.body.appendChild(script);
     });
-    if (!res.ok) {
-      const t = await res.text();
-      throw new Error(`Download failed (${res.status}): ${t}`);
-    }
-    const blob = await res.blob();
-    const a = document.createElement("a");
-    const objUrl = URL.createObjectURL(blob);
-    a.href = objUrl;
-    a.download = item.name || "file.pdf";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(objUrl);
-    setStatus(`✅ Download started: ${item.name}`);
   }
 
-  function renderTable(files) {
+  async function loadConfig(){
+    const data = await jsonp(`${SCRIPT_URL}?action=config`, "cfg");
+    if (!data.ok) throw new Error(data.message || "Config error");
+    $("repoLabel").textContent = `${data.owner}/${data.repo}@${data.branch}  (folder: ${data.folder})`;
+  }
+
+  function render(files){
     const tbody = $("tbody");
-    const query = $("search").value.trim().toLowerCase();
+    const q = $("search").value.trim().toLowerCase();
+    const filtered = q ? files.filter(f => (f.name||"").toLowerCase().includes(q)) : files;
 
-    const filtered = query
-      ? files.filter(f => (f.name || "").toLowerCase().includes(query))
-      : files;
-
-    if (!filtered.length) {
+    if (!filtered.length){
       tbody.innerHTML = `<tr><td colspan="4" class="muted">No matching PDFs.</td></tr>`;
       return;
     }
 
     tbody.innerHTML = "";
-    for (const f of filtered) {
+    for (const f of filtered){
       const tr = document.createElement("tr");
 
       const td1 = document.createElement("td");
-      td1.innerHTML = `<div><strong>${escapeHtml(f.name)}</strong></div><div class="muted mono">${escapeHtml(f.path)}</div>`;
+      td1.innerHTML = `<strong>${esc(f.name)}</strong><div class="muted mono">${esc(f.path)}</div>`;
       tr.appendChild(td1);
 
       const td2 = document.createElement("td");
@@ -315,55 +192,158 @@
       tr.appendChild(td2);
 
       const td3 = document.createElement("td");
-      td3.innerHTML = `<div class="mono" style="word-break:break-all;">${escapeHtml(f.raw_url)}</div>`;
+      td3.innerHTML = `<div class="mono">${esc(f.raw_url)}</div>`;
       tr.appendChild(td3);
 
       const td4 = document.createElement("td");
-
       const btn = document.createElement("button");
       btn.textContent = "Download";
-      btn.onclick = async () => {
-        try { await downloadViaAPI(f); }
-        catch (e) { setStatus("ERROR: " + e.message); }
-      };
-
-      const copy = document.createElement("button");
-      copy.textContent = "Copy raw link";
-      copy.onclick = async () => {
-        await navigator.clipboard.writeText(f.raw_url);
-        setStatus(`✅ Copied:\n${f.raw_url}`);
-      };
-
+      btn.onclick = () => window.open(f.raw_url, "_blank", "noopener,noreferrer");
       td4.appendChild(btn);
-      td4.appendChild(document.createElement("div")).style.height = "8px";
-      td4.appendChild(copy);
-
       tr.appendChild(td4);
+
       tbody.appendChild(tr);
     }
   }
 
-  // Events
-  $("uploadBtn").addEventListener("click", async () => {
-    try { await uploadPDF(); }
-    catch (e) { setStatus("ERROR: " + e.message); }
-    finally { $("uploadBtn").disabled = false; }
-  });
+  async function listPDFs(){
+    if (!session) return setStatus("Login first.");
+    setStatus("Listing PDFs…");
+    $("refreshBtn").disabled = true;
 
-  $("refreshBtn").addEventListener("click", async () => {
-    try { await listPDFs(); }
-    catch (e) { setStatus("ERROR: " + e.message); $("refreshBtn").disabled = false; }
-  });
+    try{
+      const data = await jsonp(`${SCRIPT_URL}?action=list&session=${encodeURIComponent(session)}`, "lst");
+      if (!data.ok) throw new Error(data.message || "List error");
+      lastFiles = data.files || [];
+      render(lastFiles);
+      setStatus(`✅ Found ${lastFiles.length} PDF(s).`);
+    } catch(e){
+      setStatus("ERROR: " + e.message);
+      if ((e.message||"").toLowerCase().includes("session")) forceLogout();
+    } finally {
+      $("refreshBtn").disabled = false;
+    }
+  }
 
-  $("search").addEventListener("input", () => renderTable(lastFiles));
+  // ---------- POST via hidden iframe + postMessage ----------
+  function postForm(action, fields){
+    return new Promise((resolve, reject) => {
+      const form = $("apiForm");
+      form.action = SCRIPT_URL;
 
-  $("clearBtn").addEventListener("click", () => {
-    $("search").value = "";
-    $("status").textContent = "Ready.";
-    $("tbody").innerHTML = `<tr><td colspan="4" class="muted">No files listed yet. Click “List PDFs”.</td></tr>`;
-  });
+      $("f_action").value = action;
+      $("f_session").value = fields.session || "";
+      $("f_username").value = fields.username || "";
+      $("f_password").value = fields.password || "";
+      $("f_filename").value = fields.filename || "";
+      $("f_base64").value = fields.base64 || "";
 
-})();
+      const handler = (ev) => {
+        // optionally tighten this by checking ev.origin
+        const msg = ev.data || {};
+        if (!msg || !msg.type) return;
+        window.removeEventListener("message", handler);
+
+        if (msg.ok) resolve(msg);
+        else reject(new Error(msg.message || "Request failed"));
+      };
+
+      window.addEventListener("message", handler);
+      form.submit();
+    });
+  }
+
+  async function doLogin(){
+    const u = $("username").value.trim();
+    const p = $("password").value.trim();
+    if (!u || !p) return setStatus("Enter username and password.");
+
+    $("loginBtn").disabled = true;
+    setStatus("Logging in…");
+
+    try{
+      const res = await postForm("login", { username:u, password:p });
+      session = res.session;
+      localStorage.setItem("pdfVaultSession", session);
+      showApp(true);
+      setStatus(`✅ Logged in (expires ~${res.expiresHours} hours).`);
+      await loadConfig();
+    } catch(e){
+      setStatus("ERROR: " + e.message);
+    } finally {
+      $("loginBtn").disabled = false;
+      $("password").value = "";
+    }
+  }
+
+  function forceLogout(){
+    localStorage.removeItem("pdfVaultSession");
+    session = "";
+    showApp(false);
+  }
+
+  async function doLogout(){
+    const s = session;
+    forceLogout();
+    try { await postForm("logout", { session:s }); } catch {}
+    setStatus("Logged out.");
+  }
+
+  async function fileToDataUrl(file){
+    return new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(fr.result);
+      fr.onerror = () => reject(fr.error);
+      fr.readAsDataURL(file);
+    });
+  }
+
+  async function upload(){
+    if (!session) return setStatus("Login first.");
+    const file = $("file").files[0];
+    if (!file) return setStatus("Pick a PDF first.");
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      return setStatus("Please choose a PDF.");
+    }
+
+    $("uploadBtn").disabled = true;
+    setStatus("Reading file…");
+
+    try{
+      const dataUrl = await fileToDataUrl(file);
+      setStatus("Uploading (token stays in Google Sheet)…");
+
+      const res = await postForm("upload", {
+        session,
+        filename: file.name,
+        base64: dataUrl
+      });
+
+      setStatus(`✅ Uploaded:\n${res.name}\n\nRaw link:\n${res.raw_url}`);
+      $("file").value = "";
+      await listPDFs();
+    } catch(e){
+      setStatus("ERROR: " + e.message);
+      if ((e.message||"").toLowerCase().includes("session")) forceLogout();
+    } finally {
+      $("uploadBtn").disabled = false;
+    }
+  }
+
+  $("loginBtn").addEventListener("click", doLogin);
+  $("logoutBtn").addEventListener("click", doLogout);
+  $("refreshBtn").addEventListener("click", listPDFs);
+  $("uploadBtn").addEventListener("click", upload);
+  $("search").addEventListener("input", () => render(lastFiles));
+
+  // auto-session
+  if (session) {
+    showApp(true);
+    loadConfig().then(() => setStatus("Session found. Ready.")).catch(() => forceLogout());
+  } else {
+    showApp(false);
+  }
 </script>
 </body>
 </html>
+
