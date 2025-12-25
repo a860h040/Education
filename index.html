@@ -3,30 +3,159 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PDF Vault</title>
+  <title>PDFs</title>
   <style>
-    body{font-family:system-ui,Segoe UI,Arial,sans-serif;margin:0;min-height:100vh;display:grid;place-items:center;background:#f7f7f7}
-    .card{background:#fff;border:1px solid #e6e6e6;border-radius:16px;padding:24px;max-width:560px;width:calc(100% - 32px);box-shadow:0 10px 30px rgba(0,0,0,.06)}
-    h1{margin:0 0 8px;font-size:22px}
-    p{margin:0 0 18px;color:#555;line-height:1.4}
-    .btn{display:inline-block;padding:12px 16px;border-radius:12px;background:#111;color:#fff;text-decoration:none;font-weight:600}
+    :root{
+      --bg:#f7f7f7; --card:#fff; --border:#e6e6e6; --text:#111; --muted:#666;
+      --btn:#111; --link:#0b62d6;
+    }
+    body{font-family:system-ui,Segoe UI,Arial,sans-serif;margin:0;min-height:100vh;background:var(--bg);color:var(--text)}
+    .wrap{max-width:980px;margin:0 auto;padding:22px}
+    .top{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:14px}
+    h1{margin:0;font-size:22px}
+    .btn{
+      display:inline-block;padding:10px 14px;border-radius:12px;background:var(--btn);
+      color:#fff;text-decoration:none;font-weight:700;border:0;cursor:pointer
+    }
     .btn:hover{opacity:.9}
-    .small{margin-top:14px;font-size:13px;color:#777;word-break:break-all}
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.06)}
+    .muted{color:var(--muted);margin:0 0 14px}
+    .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0 18px}
+    input{padding:10px;border:1px solid #ccc;border-radius:10px;flex:1;min-width:240px}
+    button{padding:10px 12px;border:1px solid #ccc;border-radius:10px;background:#fff;cursor:pointer}
+    .status{white-space:pre-wrap;background:#fafafa;border:1px dashed #ddd;border-radius:12px;padding:10px;margin:12px 0}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{border-bottom:1px solid #eee;padding:10px;text-align:left;vertical-align:top}
+    th{font-size:13px;color:#444}
+    a.link{color:var(--link);text-decoration:none}
+    a.link:hover{text-decoration:underline}
+    .mono{font-family:ui-monospace,Menlo,Consolas,monospace;word-break:break-all;color:#666;font-size:12px}
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Open PDF Vault</h1>
-    <p>Click the button below to open the app.</p>
+  <div class="wrap">
+    <div class="top">
+      <h1>PDF Files</h1>
 
-    <a class="btn" href="https://script.google.com/macros/s/AKfycbx1rGjbtnYu3YfKyvd__rBJP4dDbRM81Inmh5imX2-_D-IN1sxCcaQ4p3jGEmVAkBbWCQ/exec"
-       target="_blank" rel="noopener noreferrer">
-      Open App
-    </a>
+      <div class="actions">
+        <!-- ✅ Edit button goes to your GitHub page "index2" -->
+        <!-- If your file is index2.html, this works. If it's just "index2" with no extension, change href to "./index2" -->
+        <a class="btn" href="./index2.html">Edit</a>
 
-    <div class="small">
-      Link: https://script.google.com/macros/s/AKfycbx1rGjbtnYu3YfKyvd__rBJP4dDbRM81Inmh5imX2-_D-IN1sxCcaQ4p3jGEmVAkBbWCQ/exec
+        <!-- ✅ Settings button opens Apps Script -->
+        <a class="btn"
+           href="https://script.google.com/macros/s/AKfycbx1rGjbtnYu3YfKyvd__rBJP4dDbRM81Inmh5imX2-_D-IN1sxCcaQ4p3jGEmVAkBbWCQ/exec"
+           target="_blank" rel="noopener noreferrer">
+          Settings
+        </a>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="muted">Listing all PDFs in the <b>pdfs</b> folder.</p>
+
+      <div class="bar">
+        <input id="q" placeholder="Search filename..." />
+        <button id="reload">Reload</button>
+      </div>
+
+      <div id="status" class="status">Loading…</div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>Download</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr><td colspan="2">Loading…</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
+
+<script>
+  // ✅ GitHub repo settings
+  const OWNER  = "a860h040";
+  const REPO   = "Education";
+  const BRANCH = "main";
+  const FOLDER = "pdfs";
+
+  const API = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(FOLDER)}?ref=${encodeURIComponent(BRANCH)}`;
+
+  const statusEl = document.getElementById("status");
+  const tbody = document.getElementById("tbody");
+  const q = document.getElementById("q");
+
+  let allFiles = [];
+
+  function setStatus(t){ statusEl.textContent = t; }
+  function esc(s){ return String(s||"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
+
+  function render(){
+    const term = q.value.trim().toLowerCase();
+    const files = term
+      ? allFiles.filter(f => (f.name||"").toLowerCase().includes(term))
+      : allFiles;
+
+    if (!files.length){
+      tbody.innerHTML = `<tr><td colspan="2">No matching PDFs.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = files.map(f => `
+      <tr>
+        <td>
+          <b>${esc(f.name)}</b>
+          <div class="mono">${esc(f.path)}</div>
+        </td>
+        <td>
+          <a class="link" href="${esc(f.download_url)}" target="_blank" rel="noopener noreferrer">Download</a>
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  async function load(){
+    setStatus("Loading from GitHub…");
+    tbody.innerHTML = `<tr><td colspan="2">Loading…</td></tr>`;
+
+    try{
+      const r = await fetch(API);
+      if (!r.ok) {
+        const text = await r.text();
+        setStatus(`ERROR: GitHub API ${r.status}\n${text}\n\nIf your repo is PRIVATE, this method will fail.`);
+        tbody.innerHTML = `<tr><td colspan="2">Failed to load.</td></tr>`;
+        return;
+      }
+
+      const data = await r.json();
+
+      allFiles = (Array.isArray(data) ? data : [])
+        .filter(x => x && x.type === "file" && (x.name || "").toLowerCase().endsWith(".pdf"))
+        .map(x => ({
+          name: x.name,
+          path: x.path,
+          download_url: x.download_url
+        }))
+        .sort((a,b) => a.name.localeCompare(b.name));
+
+      setStatus(`Found ${allFiles.length} PDF(s) in /${FOLDER}`);
+      render();
+    } catch (e) {
+      setStatus("ERROR: " + (e.message || e));
+      tbody.innerHTML = `<tr><td colspan="2">Failed to load.</td></tr>`;
+    }
+  }
+
+  q.addEventListener("input", render);
+  document.getElementById("reload").addEventListener("click", load);
+
+  // ✅ Load immediately (PDF list first)
+  load();
+</script>
 </body>
 </html>
+
