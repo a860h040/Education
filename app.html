@@ -1,0 +1,227 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PDF Vault</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Arial,sans-serif;margin:24px;max-width:980px}
+    .card{border:1px solid #ddd;border-radius:12px;padding:14px;margin:12px 0}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:end}
+    label{display:block;font-size:13px;color:#333;margin-bottom:4px}
+    input,button{font:inherit;padding:10px;border:1px solid #ccc;border-radius:10px}
+    input[type=file]{padding:8px}
+    button{cursor:pointer}
+    button.primary{border:none;background:#111;color:#fff}
+    .status{white-space:pre-wrap;background:#fafafa;border:1px dashed #ddd;border-radius:12px;padding:10px;min-height:54px}
+    table{width:100%;border-collapse:collapse}
+    th,td{border-bottom:1px solid #eee;padding:10px;text-align:left;vertical-align:top}
+    th{font-size:13px;color:#444}
+    .mono{font-family:ui-monospace,Menlo,Consolas,monospace;word-break:break-all}
+    .muted{color:#666;font-size:13px}
+    .pill{display:inline-block;padding:2px 8px;border:1px solid #ddd;border-radius:999px;font-size:12px;color:#444}
+  </style>
+</head>
+<body>
+<h1>PDF Vault</h1>
+
+<div class="card">
+  <div class="muted">Status</div>
+  <div id="status" class="status">Loading…</div>
+</div>
+
+<div class="card">
+  <div class="row" style="justify-content:space-between;align-items:center;">
+    <div>
+      <div class="muted">Repository</div>
+      <div class="mono" id="repoLabel">—</div>
+    </div>
+    <button id="logoutBtn">Logout</button>
+  </div>
+</div>
+
+<div class="card">
+  <h3 style="margin:0 0 10px;">Upload PDF</h3>
+  <form id="uploadForm" method="POST">
+    <input type="hidden" name="action" value="upload">
+    <input type="hidden" name="session" id="up_session">
+    <input type="hidden" name="returnUrl" id="up_returnUrl">
+    <input type="hidden" name="filename" id="up_filename">
+    <textarea name="base64" id="up_base64" style="display:none"></textarea>
+
+    <div class="row">
+      <div style="flex:1;min-width:320px;">
+        <label>Select PDF</label>
+        <input id="file" type="file" accept="application/pdf">
+      </div>
+      <button class="primary" type="button" id="uploadBtn">Upload</button>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <h3 style="margin:0 0 10px;">Find & Download</h3>
+  <div class="row">
+    <div style="flex:1;min-width:260px;">
+      <label>Search</label>
+      <input id="search" placeholder="type part of filename…">
+    </div>
+    <button type="button" id="refreshBtn">List PDFs</button>
+  </div>
+
+  <div style="margin-top:12px;">
+    <table>
+      <thead>
+        <tr>
+          <th>File</th>
+          <th>Size</th>
+          <th>Raw link</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        <tr><td colspan="4" class="muted">Click “List PDFs”.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  const SCRIPT_URL = "PASTE_YOUR_NEW_APPS_SCRIPT_EXEC_URL_HERE";
+  const LOGIN_URL  = location.origin + location.pathname.replace("app.html", "login.html");
+
+  const statusEl = document.getElementById("status");
+  const repoLabel = document.getElementById("repoLabel");
+  const tbody = document.getElementById("tbody");
+
+  let session = localStorage.getItem("pdfVaultSession") || "";
+  let lastFiles = [];
+
+  function setStatus(msg){ statusEl.textContent = msg; }
+  function niceBytes(n){
+    n = Number(n || 0);
+    if (!n) return "0 B";
+    const k=1024, sizes=["B","KB","MB","GB"];
+    const i=Math.floor(Math.log(n)/Math.log(k));
+    return (n/Math.pow(k,i)).toFixed(i?2:0) + " " + sizes[i];
+  }
+  function esc(s){
+    return String(s||"").replaceAll("&","&amp;").replaceAll("<","&lt;")
+      .replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+  }
+
+  // Handle redirect params from Apps Script
+  const params = new URLSearchParams(location.search);
+  if (params.get("session")) {
+    session = params.get("session");
+    localStorage.setItem("pdfVaultSession", session);
+  }
+  if (params.get("msg")) {
+    let msg = params.get("msg");
+    if (params.get("uploaded")) msg += "\nUploaded: " + params.get("uploaded");
+    if (params.get("raw")) msg += "\nRaw: " + params.get("raw");
+    setStatus(msg);
+  } else {
+    setStatus("Ready.");
+  }
+
+  if (!session) {
+    // Not logged in -> go to login page
+    location.replace(LOGIN_URL + "?msg=" + encodeURIComponent("Please log in."));
+  }
+
+  // JSONP helper for listing/config
+  function jsonp(url, prefix){
+    return new Promise((resolve, reject) => {
+      const cb = `${prefix}_${Math.random().toString(16).slice(2)}`;
+      window[cb] = (data) => { delete window[cb]; script.remove(); resolve(data); };
+      const script = document.createElement("script");
+      script.src = url + (url.includes("?") ? "&" : "?") + "callback=" + encodeURIComponent(cb);
+      script.onerror = () => { delete window[cb]; script.remove(); reject(new Error("JSONP failed.")); };
+      document.body.appendChild(script);
+    });
+  }
+
+  async function loadConfig(){
+    const data = await jsonp(`${SCRIPT_URL}?action=config`, "cfg");
+    if (!data.ok) throw new Error(data.message || "Config error");
+    repoLabel.textContent = `${data.owner}/${data.repo}@${data.branch} (folder: ${data.folder})`;
+  }
+
+  function render(files){
+    const q = document.getElementById("search").value.trim().toLowerCase();
+    const filtered = q ? files.filter(f => (f.name||"").toLowerCase().includes(q)) : files;
+
+    if (!filtered.length) {
+      tbody.innerHTML = `<tr><td colspan="4" class="muted">No matching PDFs.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = "";
+    for (const f of filtered){
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><strong>${esc(f.name)}</strong><div class="muted mono">${esc(f.path)}</div></td>
+        <td><span class="pill">${niceBytes(f.size)}</span></td>
+        <td><div class="mono">${esc(f.raw_url)}</div></td>
+        <td><button type="button" data-url="${esc(f.raw_url)}">Download</button></td>
+      `;
+      tr.querySelector("button").onclick = () => window.open(f.raw_url, "_blank", "noopener,noreferrer");
+      tbody.appendChild(tr);
+    }
+  }
+
+  async function listPDFs(){
+    setStatus("Listing PDFs…");
+    const data = await jsonp(`${SCRIPT_URL}?action=list&session=${encodeURIComponent(session)}`, "lst");
+    if (!data.ok) throw new Error(data.message || "List error");
+    lastFiles = data.files || [];
+    render(lastFiles);
+    setStatus(`Found ${lastFiles.length} PDF(s).`);
+  }
+
+  async function fileToDataUrl(file){
+    return new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(fr.result);
+      fr.onerror = () => reject(fr.error);
+      fr.readAsDataURL(file);
+    });
+  }
+
+  document.getElementById("refreshBtn").onclick = () => {
+    listPDFs().catch(e => setStatus("ERROR: " + e.message));
+  };
+  document.getElementById("search").oninput = () => render(lastFiles);
+
+  document.getElementById("logoutBtn").onclick = () => {
+    localStorage.removeItem("pdfVaultSession");
+    location.replace(LOGIN_URL + "?msg=" + encodeURIComponent("Logged out."));
+  };
+
+  document.getElementById("uploadBtn").onclick = async () => {
+    const file = document.getElementById("file").files[0];
+    if (!file) return setStatus("Pick a PDF first.");
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      return setStatus("Please choose a PDF.");
+    }
+
+    setStatus("Reading file…");
+    const dataUrl = await fileToDataUrl(file);
+
+    // Fill hidden fields, then submit POST to Apps Script (it will redirect back)
+    document.getElementById("uploadForm").action = SCRIPT_URL;
+    document.getElementById("up_session").value = session;
+    document.getElementById("up_returnUrl").value = location.origin + location.pathname; // app.html
+    document.getElementById("up_filename").value = file.name;
+    document.getElementById("up_base64").value = dataUrl;
+
+    setStatus("Uploading…");
+    document.getElementById("uploadForm").submit();
+  };
+
+  // initial load
+  loadConfig().catch(e => setStatus("ERROR: " + e.message));
+</script>
+</body>
+</html>
