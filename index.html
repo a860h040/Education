@@ -20,13 +20,18 @@
       --cardBg: rgba(255,255,255,.92);
       --cardBorder: rgba(17,24,39,.10);
 
-      /* dynamic */
+      /* dynamic center (JS sets these) */
+      --cx: 50%;
+      --cy: 50%;
+
+      /* dynamic topbar height (JS sets) */
       --topbarH: 92px;
 
-      /* mobile layout vars */
-      --mobilePanelPad: 12px;
-      --mobilePanelGap: 10px;
+      /* mobile layout */
+      --mobilePad: 12px;
+      --mobileGap: 10px;
     }
+
     *{box-sizing:border-box}
     body{
       margin:0;
@@ -134,7 +139,7 @@
       outline:none;
       flex:1;
       min-width: 200px;
-      font-size:16px; /* ✅ prevents iOS zoom on focus */
+      font-size:16px; /* prevent iOS zoom */
     }
     .smallBtn{
       border:1px solid rgba(17,24,39,.14);
@@ -185,7 +190,8 @@
 
     .centerLabel{
       position:absolute;
-      left:50%; top:50%;
+      left: var(--cx, 50%);
+      top: var(--cy, 50%);
       transform: translate(-50%,-50%);
       text-align:center;
       z-index:7;
@@ -211,8 +217,8 @@
 
     .branch{
       position:absolute;
-      left:50%;
-      top:50%;
+      left: var(--cx, 50%);
+      top: var(--cy, 50%);
       width:0;height:0;
       transform: translate(-50%,-50%) rotate(var(--angle)) translateX(var(--r0));
       transform-origin: 0 0;
@@ -223,7 +229,7 @@
       left:0;
       top:-26px;
       width: var(--len);
-      height: 52px; /* ✅ bigger tap target */
+      height: 52px;
       cursor:pointer;
       background: transparent;
       -webkit-tap-highlight-color: transparent;
@@ -380,7 +386,7 @@
       gap:10px;
       padding:12px 12px;
       border-bottom:1px solid rgba(17,24,39,.10);
-      flex-wrap:wrap; /* ✅ wraps on small screens */
+      flex-wrap:wrap;
     }
     .modalTitle{
       font-weight:900;
@@ -397,7 +403,7 @@
     .modalBtn{
       border:1px solid rgba(17,24,39,.16);
       background: rgba(255,255,255,.75);
-      padding:10px 12px; /* ✅ better touch */
+      padding:10px 12px;
       border-radius:999px;
       cursor:pointer;
       font-weight:900;
@@ -415,11 +421,7 @@
     .modalBtn:hover{transform: translateY(-1px);background: rgba(17,24,39,.04);border-color: rgba(17,24,39,.22)}
     .modalBtn:active{transform: translateY(0px) scale(.99)}
     .modalBody{flex:1; background:#fff}
-    .modalBody iframe{
-      width:100%; height:100%;
-      border:0;
-      background:#fff;
-    }
+    .modalBody iframe{width:100%; height:100%; border:0; background:#fff;}
     .modalHint{
       padding:10px 12px;
       border-top:1px solid rgba(17,24,39,.10);
@@ -442,42 +444,29 @@
       opacity:.9;
     }
 
-    /* ✅ PHONE LAYOUT: make panel full-width under topbar */
+    /* ✅ PHONE: make panel full width UNDER topbar */
     @media (max-width: 780px){
-      body{overflow:hidden;}
       .topbar{
-        left: var(--mobilePanelPad);
-        right: var(--mobilePanelPad);
-        top: var(--mobilePanelPad);
+        left: var(--mobilePad);
+        right: var(--mobilePad);
+        top: var(--mobilePad);
       }
-      .brand h1{font-size:13px}
-      .actions{gap:8px}
       .btn{padding:10px 12px}
+      .brand h1{font-size:13px}
 
       .sidePanel{
-        left: var(--mobilePanelPad);
-        right: var(--mobilePanelPad);
+        left: var(--mobilePad);
+        right: var(--mobilePad);
         align-items:stretch;
-        top: calc(var(--mobilePanelPad) + var(--topbarH, 92px) + var(--mobilePanelGap));
+        top: calc(var(--mobilePad) + var(--topbarH, 92px) + var(--mobileGap));
       }
-      .panelCard{
-        width:100%;
-        border-radius:18px;
-      }
+      .panelCard{width:100%; border-radius:18px;}
       .row{justify-content:flex-start}
-      .input{min-width: 0; width: 100%;}
-      .smallBtn{width:auto}
-
-      /* give the center label a little lift so it doesn't sit under the panel */
-      .centerLabel{
-        top: 56%;
-      }
-
-      /* reduce tip width on phones */
+      .input{min-width:0; width:100%;}
       .tip{max-width: 260px;}
     }
 
-    /* ✅ make hover behavior always "expanded" on touch devices */
+    /* Touch devices: expanded */
     @media (hover:none){
       .branch .line{ width: var(--len); background: var(--lineHot); }
       .branch .node{ left: calc(var(--len) - 18px); transform: scale(1); opacity:1; }
@@ -512,8 +501,8 @@
     </div>
   </div>
 
-  <div class="sidePanel">
-    <div class="panelCard">
+  <div class="sidePanel" id="sidePanel">
+    <div class="panelCard" id="panelCard">
       <div class="row">
         <input class="input" id="q" placeholder="Search filename..." />
         <button class="smallBtn" id="reload">Reload</button>
@@ -522,7 +511,6 @@
     </div>
   </div>
 
-  <!-- ✅ Preview modal -->
   <div class="modal" id="modal" aria-hidden="true">
     <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modalHead">
@@ -536,9 +524,7 @@
           <button class="modalBtn" id="closeBtn" type="button">Close <span class="kbd">Esc</span></button>
         </div>
       </div>
-      <div class="modalBody">
-        <iframe id="viewer" title="PDF Preview"></iframe>
-      </div>
+      <div class="modalBody"><iframe id="viewer" title="PDF Preview"></iframe></div>
       <div class="modalHint">
         <div>Click <b>Download</b> only after preview.</div>
         <div class="mono" id="modalLink"></div>
@@ -553,8 +539,6 @@ const BRANCH = "main";
 const FOLDER = "pdfs";
 const API = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(FOLDER)}?ref=${encodeURIComponent(BRANCH)}`;
 const TEXTURE_URL = "./assets/roof.png";
-
-/* PDF.js viewer hosted by Mozilla */
 const PDFJS_VIEWER = "https://mozilla.github.io/pdf.js/web/viewer.html?file=";
 
 const scene = document.getElementById("scene");
@@ -565,7 +549,9 @@ const branchesEl = document.getElementById("branches");
 const q = document.getElementById("q");
 const countSub = document.getElementById("countSub");
 
-/* modal refs */
+const sidePanel = document.getElementById("sidePanel");
+const panelCard = document.getElementById("panelCard");
+
 const modal = document.getElementById("modal");
 const viewer = document.getElementById("viewer");
 const modalTitle = document.getElementById("modalTitle");
@@ -582,7 +568,6 @@ let rafId = 0;
 let texImg = null;
 let texPattern = null;
 
-/* pills swimming inside center blob */
 let swimPills = [];
 let lastFrameT = 0;
 
@@ -594,12 +579,39 @@ function hashStr(str){
   return ((h>>>0) % 100000) / 100000;
 }
 
-/* ✅ measure topbar and set CSS var so sidePanel never overlaps */
-function updateSidePanelOffset(){
+/* ✅ Update topbarH and center (cx/cy) so octopus auto-fits */
+function updateLayoutVars(){
   const topbar = document.querySelector(".topbar");
-  if (!topbar) return;
-  const h = topbar.getBoundingClientRect().height;
-  document.documentElement.style.setProperty("--topbarH", `${Math.ceil(h) + 10}px`);
+  const topbarRect = topbar ? topbar.getBoundingClientRect() : { left:14, right: window.innerWidth-14, bottom: 14 };
+
+  // set topbar height for panel top offset
+  const topbarH = topbar ? topbarRect.height : 92;
+  document.documentElement.style.setProperty("--topbarH", `${Math.ceil(topbarH) + 10}px`);
+
+  const w = window.innerWidth, h = window.innerHeight;
+  const isPhone = window.matchMedia("(max-width: 780px)").matches;
+
+  // side panel metrics (for safe area)
+  const panelRect = panelCard ? panelCard.getBoundingClientRect() : { width:0, height:0, right:w-14, left:14, bottom: topbarRect.bottom };
+
+  const pad = isPhone ? 14 : 22;
+  const gap = 16;
+
+  // reserve space
+  const rightReserved = isPhone ? pad : (panelRect.width + gap + 14);
+  const topReserved   = isPhone ? (panelRect.bottom + 18) : (topbarRect.bottom + 18);
+
+  // safe bounds where octopus should be centered
+  const safeLeft = pad;
+  const safeRight = w - rightReserved;
+  const safeTop = topReserved;
+  const safeBottom = h - pad;
+
+  const cx = clamp((safeLeft + safeRight) / 2, pad, w - pad);
+  const cy = clamp((safeTop + safeBottom) / 2, pad, h - pad);
+
+  document.documentElement.style.setProperty("--cx", `${cx}px`);
+  document.documentElement.style.setProperty("--cy", `${cy}px`);
 }
 
 function resizeCanvas(c){
@@ -620,7 +632,6 @@ function displayName(full){
   return noExt.trim();
 }
 
-/* ✅ PREVIEW modal */
 function previewFile(url, niceName){
   modalTitle.textContent = niceName || "Preview";
   modalLink.textContent = url;
@@ -659,12 +670,8 @@ function showModal(on){
 }
 
 closeBtn.addEventListener("click", () => showModal(false));
-modal.addEventListener("click", (e) => {
-  if (e.target === modal) showModal(false);
-});
-window.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && modal.classList.contains("show")) showModal(false);
-});
+modal.addEventListener("click", (e) => { if (e.target === modal) showModal(false); });
+window.addEventListener("keydown", (e) => { if (e.key === "Escape" && modal.classList.contains("show")) showModal(false); });
 
 function wavyRadius(angle, t, R){
   const n =
@@ -695,7 +702,6 @@ async function loadTexture(){
   });
 }
 
-/* top & bottom branches shorter */
 function topBottomScale(angleDeg){
   const a = ((angleDeg % 360) + 360) % 360;
   const distTop = Math.min(Math.abs(a - 270), Math.abs(a - (270+360)));
@@ -705,25 +711,34 @@ function topBottomScale(angleDeg){
   return clamp(scale, 0.5, 1.0);
 }
 
-/* safe geometry: on phones reserve NO right panel width */
+/* ✅ Auto size for iPhone + big monitors (uses real safe area) */
 function computeSafeGeometry(fileCount){
   const r = scene.getBoundingClientRect();
   const w = r.width, h = r.height;
-
   const isPhone = window.matchMedia("(max-width: 780px)").matches;
 
-  const safePad = isPhone ? 44 : 72;
-  const topHud = isPhone ? 140 : 80; /* more space for full-width search card */
-  const rightPanelW = isPhone ? 0 : (Math.min(360, w * 0.38) + 24);
+  const topbar = document.querySelector(".topbar");
+  const topbarRect = topbar ? topbar.getBoundingClientRect() : { bottom: 14, height: 92 };
 
-  const availW = (w - safePad*2) - rightPanelW;
-  const availH = (h - safePad) - topHud;
+  const panelRect = panelCard ? panelCard.getBoundingClientRect() : { width:0, bottom: topbarRect.bottom };
 
-  const R = Math.min(availW, availH) * (isPhone ? 0.25 : 0.28);
-  const r0 = R * 1.05;
+  const pad = isPhone ? 14 : 22;
+  const gap = 16;
 
-  const maxToEdge = Math.min(availW, availH) * 0.50;
-  const baseLen = clamp(maxToEdge, isPhone ? 150 : 200, isPhone ? 300 : 380);
+  const rightReserved = isPhone ? pad : (panelRect.width + gap + 14);
+  const topReserved   = isPhone ? (panelRect.bottom + 18) : (topbarRect.bottom + 18);
+
+  const availW = Math.max(240, (w - pad) - rightReserved - pad);
+  const availH = Math.max(240, (h - topReserved) - pad);
+
+  // ✅ scale factor grows on large screens, shrinks on phones
+  const scale = clamp(0.22 + (Math.min(availW, availH) / 900) * 0.16, isPhone ? 0.20 : 0.26, 0.42);
+
+  const R  = Math.min(availW, availH) * scale;
+  const r0 = R * 1.06;
+
+  const maxToEdge = Math.min(availW, availH) * (isPhone ? 0.55 : 0.62);
+  const baseLen = clamp(maxToEdge, isPhone ? 140 : 220, isPhone ? 310 : 520);
   const jitter = baseLen * 0.18;
 
   const crowd = clamp(fileCount / 22, 0, 1);
@@ -841,7 +856,7 @@ function applySearch(){
   buildBranches(shownFiles);
 }
 
-/* --------- center swim pills ---------- */
+/* ----- center swim pills ----- */
 function rand(a,b){ return a + Math.random()*(b-a); }
 
 function resetSwimPills(R){
@@ -1009,7 +1024,13 @@ function animate(){
   texPattern = buildTexturePattern(ctxFx);
 
   const w = s1.w, h = s1.h;
-  const cx = w/2, cy = h/2;
+
+  // Use CSS variables as the *real* center so drawing matches layout
+  function getCenter(){
+    const cx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--cx")) || (w/2);
+    const cy = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--cy")) || (h/2);
+    return { cx, cy };
+  }
 
   let t0 = performance.now();
   lastFrameT = t0;
@@ -1022,6 +1043,7 @@ function animate(){
     ctxFx.clearRect(0,0,w,h);
     ctxLn.clearRect(0,0,w,h);
 
+    const { cx, cy } = getCenter();
     const geom = computeSafeGeometry(shownFiles.length || allFiles.length || 0);
     const R = geom.R;
     const pts = 180;
@@ -1144,7 +1166,6 @@ function animate(){
     }
 
     ctxLn.restore();
-
     rafId = requestAnimationFrame(frame);
   }
 
@@ -1154,14 +1175,20 @@ function animate(){
 
 document.getElementById("reload").addEventListener("click", async () => {
   await load();
-  updateSidePanelOffset();
-  requestAnimationFrame(updateSidePanelOffset);
+  updateLayoutVars();
+  swimPills = [];
+  animate();
 });
 
-q.addEventListener("input", applySearch);
+q.addEventListener("input", () => {
+  applySearch();
+  updateLayoutVars();
+  swimPills = [];
+  animate();
+});
 
 window.addEventListener("resize", () => {
-  updateSidePanelOffset();
+  updateLayoutVars();
   swimPills = [];
   applySearch();
   animate();
@@ -1171,8 +1198,10 @@ window.addEventListener("resize", () => {
   await loadTexture();
   await load();
 
-  updateSidePanelOffset();
-  requestAnimationFrame(updateSidePanelOffset);
+  // do layout twice (first paint + after fonts/layout settle)
+  updateLayoutVars();
+  requestAnimationFrame(updateLayoutVars);
+  requestAnimationFrame(() => { updateLayoutVars(); });
 
   animate();
 })();
