@@ -27,7 +27,9 @@
       /* dynamic topbar height (JS sets) */
       --topbarH: 92px;
 
-      /* mobile layout */
+      /* ✅ 1-step smaller (change to 0.80 for smaller, 0.90 for slightly smaller) */
+      --orbitScale: 0.85;
+
       --mobilePad: 12px;
       --mobileGap: 10px;
     }
@@ -192,12 +194,13 @@
       position:absolute;
       left: var(--cx, 50%);
       top: var(--cy, 50%);
-      transform: translate(-50%,-50%);
+      transform: translate(-50%,-50%) scale(var(--orbitScale, 1));
       text-align:center;
       z-index:7;
       pointer-events:none;
       user-select:none;
       width:min(360px, 80vw);
+      transform-origin: center;
     }
     .centerLabel .title{
       font-weight:900;
@@ -214,6 +217,11 @@
     }
 
     .branches{position:absolute; inset:0; z-index:8;}
+    /* ✅ shrink entire system around computed center */
+    #fx, #lines, #branches{
+      transform-origin: var(--cx, 50%) var(--cy, 50%);
+      transform: scale(var(--orbitScale, 1));
+    }
 
     .branch{
       position:absolute;
@@ -444,7 +452,6 @@
       opacity:.9;
     }
 
-    /* ✅ PHONE: make panel full width UNDER topbar */
     @media (max-width: 780px){
       .topbar{
         left: var(--mobilePad);
@@ -466,7 +473,6 @@
       .tip{max-width: 260px;}
     }
 
-    /* Touch devices: expanded */
     @media (hover:none){
       .branch .line{ width: var(--len); background: var(--lineHot); }
       .branch .node{ left: calc(var(--len) - 18px); transform: scale(1); opacity:1; }
@@ -582,26 +588,22 @@ function hashStr(str){
 /* ✅ Update topbarH and center (cx/cy) so octopus auto-fits */
 function updateLayoutVars(){
   const topbar = document.querySelector(".topbar");
-  const topbarRect = topbar ? topbar.getBoundingClientRect() : { left:14, right: window.innerWidth-14, bottom: 14 };
+  const topbarRect = topbar ? topbar.getBoundingClientRect() : { bottom: 14, height: 92 };
 
-  // set topbar height for panel top offset
   const topbarH = topbar ? topbarRect.height : 92;
   document.documentElement.style.setProperty("--topbarH", `${Math.ceil(topbarH) + 10}px`);
 
   const w = window.innerWidth, h = window.innerHeight;
   const isPhone = window.matchMedia("(max-width: 780px)").matches;
 
-  // side panel metrics (for safe area)
-  const panelRect = panelCard ? panelCard.getBoundingClientRect() : { width:0, height:0, right:w-14, left:14, bottom: topbarRect.bottom };
+  const panelRect = panelCard ? panelCard.getBoundingClientRect() : { width:0, bottom: topbarRect.bottom };
 
   const pad = isPhone ? 14 : 22;
   const gap = 16;
 
-  // reserve space
   const rightReserved = isPhone ? pad : (panelRect.width + gap + 14);
   const topReserved   = isPhone ? (panelRect.bottom + 18) : (topbarRect.bottom + 18);
 
-  // safe bounds where octopus should be centered
   const safeLeft = pad;
   const safeRight = w - rightReserved;
   const safeTop = topReserved;
@@ -711,6 +713,7 @@ function topBottomScale(angleDeg){
   return clamp(scale, 0.5, 1.0);
 }
 
+/* ✅ Safe geometry (still used for internal spacing) */
 function computeSafeGeometry(fileCount){
   const r = scene.getBoundingClientRect();
   const w = r.width, h = r.height;
@@ -730,20 +733,17 @@ function computeSafeGeometry(fileCount){
   const availW = Math.max(240, (w - pad) - rightReserved - pad);
   const availH = Math.max(240, (h - topReserved) - pad);
 
-  // ✅ ONE STEP SMALLER (change 0.85 -> smaller/bigger)
-  const SIZE = 1;
-
   const scale = clamp(
-    (0.22 + (Math.min(availW, availH) / 900) * 0.16) * SIZE,
-    (isPhone ? 0.20 : 0.26) * SIZE,
-    0.42 * SIZE
+    0.22 + (Math.min(availW, availH) / 900) * 0.16,
+    isPhone ? 0.20 : 0.26,
+    0.42
   );
 
   const R  = Math.min(availW, availH) * scale;
   const r0 = R * 1.06;
 
-  const maxToEdge = Math.min(availW, availH) * (isPhone ? 0.55 : 0.62) * SIZE;
-  const baseLen = clamp(maxToEdge, (isPhone ? 140 : 220) * SIZE, (isPhone ? 310 : 520) * SIZE);
+  const maxToEdge = Math.min(availW, availH) * (isPhone ? 0.55 : 0.62);
+  const baseLen = clamp(maxToEdge, isPhone ? 140 : 220, isPhone ? 310 : 520);
   const jitter = baseLen * 0.18;
 
   const crowd = clamp(fileCount / 22, 0, 1);
@@ -751,7 +751,6 @@ function computeSafeGeometry(fileCount){
 
   return { R, r0, baseLen: baseLen2, jitter };
 }
-
 
 function buildBranches(files){
   branchesEl.innerHTML = "";
@@ -1031,7 +1030,6 @@ function animate(){
 
   const w = s1.w, h = s1.h;
 
-  // Use CSS variables as the *real* center so drawing matches layout
   function getCenter(){
     const cx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--cx")) || (w/2);
     const cy = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--cy")) || (h/2);
@@ -1127,7 +1125,6 @@ function animate(){
     ctxFx.stroke();
     ctxFx.restore();
 
-    // branch lines
     ctxLn.save();
     ctxLn.lineWidth = 1;
     ctxLn.lineCap = "round";
@@ -1204,7 +1201,6 @@ window.addEventListener("resize", () => {
   await loadTexture();
   await load();
 
-  // do layout twice (first paint + after fonts/layout settle)
   updateLayoutVars();
   requestAnimationFrame(updateLayoutVars);
   requestAnimationFrame(() => { updateLayoutVars(); });
