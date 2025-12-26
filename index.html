@@ -786,8 +786,11 @@ function buildBranches(files){
 
     const tb = topBottomScale(ang);
     const lenBase = clamp(baseLen + (seed - 0.5) * 2 * jitter, baseLen*0.78, baseLen*1.08);
-    const len = lenBase * tb;
-    const lenShort = len * shortFactor;
+ 
+const len = lenBase * tb * 0.5;
+
+const lenShort = len * shortFactor;
+
 
     const nice = displayName(f.name);
     const url = f.download_url || f.raw_url;
