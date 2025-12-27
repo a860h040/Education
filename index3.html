@@ -29,34 +29,47 @@
   <div class="card">
     <div id="status" class="small">Choose a tutorial to play.</div>
 
-    <video id="player" controls playsinline preload="auto"></video>
+    <!-- Add crossorigin for CORS safety; 'controls' lets user play if autoplay is blocked -->
+    <video id="player" controls playsinline preload="auto" crossorigin="anonymous"></video>
 
     <!-- Hidden buffer video used only for preloading the next part -->
-    <video id="buffer" preload="auto" playsinline muted style="display:none;"></video>
+    <video id="buffer" preload="auto" playsinline muted crossorigin="anonymous" style="display:none;"></video>
   </div>
 
   <script>
+    // NOTE: convert your .mov files to .mp4 (H.264/AAC) and update filenames here.
+    // Example ffmpeg command:
+    // ffmpeg -i input.mov -c:v libx264 -crf 22 -preset fast -c:a aac -b:a 128k output.mp4
+
     const BASE = "https://raw.githubusercontent.com/a860h040/Education/main/";
 
-    // Tutorial 1: 1 -> 2
-    // Tutorial 2: 3 -> 4 -> 5 -> 6
-    // Tutorial 3: 7 -> 8
+    // UPDATE to .mp4 filenames after conversion (or host on GitHub Pages / another server)
     const PLAYLISTS = {
       t1: [
-        { title: "Part 1", url: BASE + "1.mov" },
-        { title: "Part 2", url: BASE + "2.mov" }
+        { title: "Part 1", url: BASE + "1.mp4" },
+        { title: "Part 2", url: BASE + "2.mp4" }
       ],
       t2: [
-        { title: "Part 3", url: BASE + "3.mov" },
-        { title: "Part 4", url: BASE + "4.mov" },
-        { title: "Part 5", url: BASE + "5.mov" },
-        { title: "Part 6", url: BASE + "6.mov" }
+        { title: "Part 3", url: BASE + "3.mp4" },
+        { title: "Part 4", url: BASE + "4.mp4" },
+        { title: "Part 5", url: BASE + "5.mp4" },
+        { title: "Part 6", url: BASE + "6.mp4" }
       ],
       t3: [
-        { title: "Part 7", url: BASE + "7.mov" },
-        { title: "Part 8", url: BASE + "8.mov" }
+        { title: "Part 7", url: BASE + "7.mp4" },
+        { title: "Part 8", url: BASE + "8.mp4" }
       ]
     };
+
+    // QUICK TEST: if you want to verify the player itself works before changing files,
+    // uncomment the short playlist below (public sample MP4) and comment out the PLAYLISTS above.
+    /*
+    const PLAYLISTS = {
+      t1: [{ title: "Test", url: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4" }],
+      t2: [{ title: "Test", url: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4" }],
+      t3: [{ title: "Test", url: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4" }]
+    };
+    */
 
     const btnT1  = document.getElementById("btnT1");
     const btnT2  = document.getElementById("btnT2");
@@ -74,12 +87,24 @@
       btnT3.classList.toggle("active", which === "t3");
     }
 
+    function setVideoSource(videoEl, url, type = "video/mp4") {
+      // Remove any existing <source> children, then add a fresh one
+      while (videoEl.firstChild) videoEl.removeChild(videoEl.firstChild);
+      const s = document.createElement("source");
+      s.src = url;
+      s.type = type;
+      videoEl.appendChild(s);
+      videoEl.load();
+    }
+
     function preloadNext(i){
       const next = i + 1;
       if (next < currentParts.length) {
         buffer.src = currentParts[next].url;
         buffer.load();
+        console.log("Preloading next:", currentParts[next].url);
       } else {
+        // clear buffer
         buffer.removeAttribute("src");
         buffer.load();
       }
@@ -89,27 +114,34 @@
       idx = i;
       const part = currentParts[idx];
       status.textContent = `Loading ${part.title}...`;
+      console.log("PlayPart:", part);
 
       // Preload next part ASAP
       preloadNext(idx);
 
-      // Load current part cleanly
-      player.pause();
-      player.removeAttribute("src");
-      player.load();
+      // Cleanly set the source using a <source> element
+      setVideoSource(player, part.url);
 
-      player.src = part.url;
-      player.load();
+      // Diagnostic checks
+      if (!player.canPlayType("video/mp4") && part.url.endsWith(".mp4")) {
+        console.warn("Browser reports it may not support mp4. canPlayType:", player.canPlayType("video/mp4"));
+      }
 
       try {
+        // Attempt to autoplay — may be blocked by browser policies
         await player.play();
         status.textContent = `Playing ${part.title}`;
-      } catch {
+      } catch (err) {
+        console.warn("Autoplay blocked or failed:", err);
         status.textContent = `Loaded ${part.title}. Press Play if it didn’t start automatically.`;
       }
     }
 
     function startTutorial(key){
+      if (!PLAYLISTS[key] || PLAYLISTS[key].length === 0) {
+        status.textContent = "Playlist is empty or missing.";
+        return;
+      }
       currentParts = PLAYLISTS[key].slice();
       setActive(key);
       playPart(0);
@@ -128,6 +160,14 @@
     btnT1.addEventListener("click", () => startTutorial("t1"));
     btnT2.addEventListener("click", () => startTutorial("t2"));
     btnT3.addEventListener("click", () => startTutorial("t3"));
+
+    // Helpful logging for debugging network / playback problems
+    player.addEventListener("error", (e) => {
+      console.error("Player error event:", e, player.error);
+      status.textContent = "Playback error — see console (Ctrl+Shift+I) for details.";
+    });
+    player.addEventListener("stalled", () => console.warn("Player stalled (network)"));
+    player.addEventListener("suspend", () => console.warn("Player suspended"));
   </script>
 
 </body>
